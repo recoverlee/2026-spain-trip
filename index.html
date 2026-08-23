@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🇪🇸 2026 스페인 여행 출국 전 최종 체크리스트</title>
+<style>
+  :root { --bg:#f5f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280; --accent:#315efb; --line:#e5e7eb; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",sans-serif; background:var(--bg); color:var(--text); line-height:1.55; }
+  .wrap { max-width:900px; margin:0 auto; padding:24px 16px 60px; }
+  header { background:linear-gradient(135deg,#315efb,#6d5dfc); color:#fff; border-radius:20px; padding:28px 24px; margin-bottom:18px; box-shadow:0 8px 24px #00000012; }
+  h1 { margin:0 0 8px; font-size:28px; }
+  .subtitle { opacity:.9; }
+  .progress-box { margin-top:18px; background:#ffffff22; border-radius:12px; padding:12px 14px; }
+  .progress-row { display:flex; justify-content:space-between; font-weight:700; margin-bottom:8px; }
+  .bar { height:10px; background:#ffffff44; border-radius:99px; overflow:hidden; }
+  #barFill { height:100%; width:0%; background:#fff; transition:.2s; }
+  .actions { display:flex; gap:10px; margin:14px 0; }
+  button { border:1px solid var(--line); background:#fff; color:var(--text); padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:700; }
+  button:hover { background:#f0f3ff; }
+  section { background:var(--card); border-radius:16px; margin:14px 0; padding:18px 18px 12px; box-shadow:0 3px 14px #00000008; }
+  h2 { margin:0 0 12px; font-size:20px; }
+  h3 { margin:16px 0 7px; font-size:16px; color:#374151; }
+  label { display:flex; align-items:flex-start; gap:10px; padding:8px 4px; border-bottom:1px solid #f0f1f3; cursor:pointer; }
+  label:last-child { border-bottom:0; }
+  input[type=checkbox] { width:20px; height:20px; margin-top:2px; accent-color:var(--accent); flex:none; }
+  label.done span { text-decoration:line-through; color:var(--muted); }
+  .danger { color:#b45309; font-weight:700; }
+  footer { color:var(--muted); text-align:center; margin-top:24px; font-size:13px; }
+  @media (max-width:600px) { h1{font-size:23px;} section{padding:15px 13px;} .wrap{padding:12px 10px 40px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>🇪🇸 2026 스페인 여행 출국 전 최종 체크리스트</h1>
+  <div class="subtitle">8/28(금) ~ 9/8(화) · 10박 12일 · 성인 2명 + 아이 1명</div>
+  <div class="progress-box">
+    <div class="progress-row"><span>전체 진행률</span><span id="progressText">0 / 0 (0%)</span></div>
+    <div class="bar"><div id="barFill"></div></div>
+  </div>
+</header>
+
+<div class="actions">
+  <button onclick="uncheckAll()">전체 미완료</button>
+  <button onclick="checkAll()">전체 완료</button>
+  <button onclick="clearSaved()">저장 데이터 초기화</button>
+</div>
+
+<div id="app"></div>
+<footer>🔐 Google 로그인 후 체크 상태가 Firebase에 저장되며 재환·혜리 두 사람의 화면에 실시간으로 공유됩니다.</footer>
+</div>
+
+<script type="module">
+/*
+ * 2026 Spain Trip Checklist
+ * Firebase Authentication + Cloud Firestore
+ *
+ * Allowed users are enforced by Firestore Security Rules.
+ * Display names are intentionally mapped locally:
+ *   jhlee8379@gmail.com      -> 재환
+ *   sweetylove0116@gmail.com -> 혜리
+ */
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCCXSxEhXGdx3V2-jR7lq2BC5JtU1gd2Eo",
+  authDomain: "spain-trip-3006a.firebaseapp.com",
+  projectId: "spain-trip-3006a",
+  storageBucket: "spain-trip-3006a.firebasestorage.app",
+  messagingSenderId: "273189424603",
+  appId: "1:273189424603:web:255710d6227f6dab4febfe"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+const USERS = {
+  "jhlee8379@gmail.com": "재환",
+  "sweetylove0116@gmail.com": "혜리"
+};
+
+const storageKey = "spain_trip_checklist_2026_v1";
+const checklistRef = doc(db, "trip", "checklist");
+const userMetaRef = doc(db, "trip", "users");
+
+let state = {};
+let checkedBy = {};
+let currentUser = null;
+let unsubscribeChecklist = null;
+let totalItems = 0;
+let isSyncing = false;
+
+/* Existing checklist data from the original file */
+const data = [
+["✈️ 1. 항공", [
+["OZ511 인천 → 바르셀로나 8/28 11:50 → 19:10 확인"],
+["Air Europa BCN → PMI 8/29 08:40 → 09:25 확인"],
+["Air Europa PMI → BCN 9/3 10:15 → 11:05 확인"],
+["OZ512 BCN → ICN 9/7 20:50 → 9/8 16:20 확인"],
+["Air Europa 온라인 체크인: 출발 48시간 전"],
+["Air Europa 좌석 확인"],
+["Air Europa 수하물 규격 확인"],
+["20인치 캐리어 실제 외부 치수 측정"],
+["백팩이 40×30×15cm 규격에 들어가는지 확인"]
+]],
+["🏨 2. 숙소", [
+["8/28 — Alberg Centre Esplai", [
+["예약 확인"],["주소 저장"],["BCN → 숙소 택시/PR1 버스 동선 확인"]]],
+["8/29~8/30 — Gran Hotel Sóller", [
+["예약 확인"],["체크인 시간 확인"],["주차 1대 예약 여부 확인"],["주차비 €18/일 확인"],["허니문 요청 여부 확인"]]],
+["8/31~9/2 — Meliá Palma Marina", [
+["예약 확인"],["주차 가능 여부 확인"],["체크인/체크아웃 시간 확인"]]],
+["9/3~9/6 — Casp 74 Apartments", [
+["예약 확인"],["체크인 방법/키 수령 방법 확인"],["체크아웃 방법 확인"]]],
+["9/7 — Colon Hotel Barcelona", [
+["예약 확인"],["공항 이동시간 확인"]]]
+]],
+["🚗 3. 마요르카 렌터카", [
+["Record Go 예약 확인"],["예약번호 확인"],["픽업: 8/29 10:30 PMI"],["반납: 9/3 08:00 PMI"],
+["차량: Seat Arona 또는 동급"],["Full Coverage 확인"],["여권 준비"],["한국 운전면허증 준비"],["국제운전면허증 준비"],["결제 카드 준비"],["차량 인수 시 외관/휠/유리 사진 촬영"],["연료 상태 사진 촬영"],["차량 반납 시 사진 촬영"]
+]],
+["🧳 4. 짐", [
+["BCN 공항에 보관", [["28인치 캐리어 1개"],["8/29~9/3 공항 보관서비스 위치 확인"],["보관비용 확인"],["9/3 BCN 도착 후 수령 방법 확인"]]],
+["마요르카로 가져갈 짐", [["20인치 캐리어 2개"],["백팩 3개"],["기내수하물 무게 측정"]]],
+["의류", [["반팔 티셔츠 5~7장"],["반바지 3~4장"],["긴바지 1장"],["얇은 긴팔/셔츠 1~2장"],["얇은 바람막이/가디건 1장"],["속옷 6~7세트"],["양말 5~6켤레"],["잠옷"],["수영복 1~2벌"],["샌들/슬리퍼"],["편한 운동화"],["모자"],["선글라스"]]]
+]],
+["📱 5. 휴대폰/전자기기", [
+["eSIM 준비"],["eSIM 설치/활성화 방법 확인"],["Bolt 설치 및 카드 등록"],["Uber 설치 및 카드 등록"],["Google Maps 설치"],["바르셀로나 오프라인 지도 다운로드"],["마요르카 오프라인 지도 다운로드"],["Google Translate 준비"],["보조배터리"],["충전기"],["케이블"],["멀티 어댑터"]
+]],
+["💳 6. 돈", [
+["트래블로그/해외결제 카드 확인"],["신용카드 2장 준비"],["예비 카드 별도 보관"],["해외결제 차단 여부 확인"],["현금 약 €400~500 준비 여부 결정"],["카드와 현금을 서로 다른 곳에 분산 보관"],["유로 지폐 소액권 준비"]
+]],
+["🎟️ 7. 관광지 예약", [
+["발데모사 수도원/피아노 공연"],["Restaurante La Posada 13:00 예약 확인"],["드라크 동굴 예약시간 확인"],["사그라다 파밀리아 예약 확인"],["카사 바트요 예약 확인"],["카사 밀라 예약 확인"],["구엘공원 예약 확인"],["피카소 미술관 예약 확인"],["카탈루냐 음악당 예약 확인"],["FC Barcelona 관련 예약 확인"],["바르셀로나 동물원 예약 확인"]
+]],
+["🗺️ 8. 이동", [
+["8/28 BCN → Alberg Centre Esplai 이동방법 결정"],["8/29 숙소 → BCN T1 이동방법 결정"],["BCN T1 수하물 보관 위치 확인"],["8/29 PMI 도착 → Record Go 이동방법 확인"],["9/3 렌터카 08:00 반납"],["9/3 PMI → BCN 10:15 비행"],["BCN 도착 후 보관짐 수령"],["바르셀로나 대중교통 패스 종류 최종 결정"],["필요 시 Bolt/Uber 이용"]
+]],
+["🩹 9. 개인용품", [
+["상비약"],["소화제"],["진통제"],["밴드"],["멀미약"],["선크림"],["보습제"],["세면도구"],["렌즈/안경"],["물티슈/휴지"],["아이 개인용품"]
+]],
+["🔐 10. 출국 직전", [
+["여권 유효기간 확인"],["항공권/예약정보 오프라인 저장"],["호텔 예약정보 오프라인 저장"],["렌터카 예약정보 오프라인 저장"],["관광지 티켓 오프라인 저장"],["여권/예약정보 사진 별도 백업"],["카드 분실 대비 연락처 확인"],["집 출발 전 쓰레기/가스/전기 확인"],["공항 이동시간 확인"],["출국 당일 알람 설정"]
+]]
+];
+
+/* UI */
+const appEl = document.getElementById("app");
+const progressText = document.getElementById("progressText");
+const barFill = document.getElementById("barFill");
+
+function showStatus(message, type = "info") {
+  let el = document.getElementById("firebaseStatus");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "firebaseStatus";
+    el.style.cssText =
+      "margin:14px 0;padding:12px 14px;border-radius:12px;font-weight:700;" +
+      "background:#eef2ff;color:#27357a;";
+    document.querySelector(".actions").insertAdjacentElement("afterend", el);
+  }
+  el.textContent = message;
+  el.style.background = type === "error" ? "#fef2f2" : "#eef2ff";
+  el.style.color = type === "error" ? "#b91c1c" : "#27357a";
+}
+
+function getDisplayName(email) {
+  return USERS[email] || email || "사용자";
+}
+
+function renderAuthHeader() {
+  let box = document.getElementById("authBox");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "authBox";
+    box.style.cssText =
+      "margin-top:14px;display:flex;align-items:center;justify-content:space-between;" +
+      "gap:12px;flex-wrap:wrap;";
+    document.querySelector("header").appendChild(box);
+  }
+
+  if (!currentUser) {
+    box.innerHTML = `
+      <button id="googleLoginBtn"
+        style="border:0;background:#fff;color:#1f2937;padding:11px 16px;border-radius:10px;
+        font-weight:800;cursor:pointer;">
+        🔐 Google 계정으로 로그인
+      </button>
+      <span style="font-size:13px;opacity:.9;">재환 · 혜리 전용</span>
+    `;
+    document.getElementById("googleLoginBtn").onclick = async () => {
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (error) {
+        console.error(error);
+        showStatus(`로그인 실패: ${error.message}`, "error");
+      }
+    };
+  } else {
+    const name = getDisplayName(currentUser.email);
+    box.innerHTML = `
+      <div style="font-size:14px;">
+        <strong>👤 ${name}</strong>
+        <span style="opacity:.8;"> · ${currentUser.email}</span>
+      </div>
+      <button id="logoutBtn"
+        style="border:1px solid #ffffff66;background:#ffffff22;color:#fff;
+        padding:9px 13px;border-radius:10px;font-weight:700;cursor:pointer;">
+        로그아웃
+      </button>
+    `;
+    document.getElementById("logoutBtn").onclick = () => signOut(auth);
+  }
+}
+
+function flattenItems(items, result = []) {
+  items.forEach(item => {
+    if (Array.isArray(item[1])) {
+      flattenItems(item[1], result);
+    } else {
+      result.push(item[0]);
+    }
+  });
+  return result;
+}
+
+const itemLabels = flattenItems(data);
+const itemKeys = itemLabels.map((_, i) => String(i));
+
+function render() {
+  appEl.innerHTML = "";
+  totalItems = 0;
+  let index = 0;
+
+  data.forEach(section => {
+    const sec = document.createElement("section");
+    const h2 = document.createElement("h2");
+    h2.textContent = section[0];
+    sec.appendChild(h2);
+
+    function renderItems(items, parent) {
+      items.forEach(item => {
+        if (Array.isArray(item[1])) {
+          const h3 = document.createElement("h3");
+          h3.textContent = item[0];
+          parent.appendChild(h3);
+          renderItems(item[1], parent);
+        } else {
+          const key = String(index++);
+          totalItems++;
+
+          const label = document.createElement("label");
+          label.dataset.key = key;
+
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.checked = !!state[key];
+          cb.disabled = !currentUser;
+
+          const content = document.createElement("span");
+          content.style.flex = "1";
+
+          const text = document.createElement("span");
+          text.textContent = item[0];
+          content.appendChild(text);
+
+          const who = checkedBy[key];
+          if (state[key] && who) {
+            const badge = document.createElement("small");
+            badge.textContent = `  · ${who}`;
+            badge.style.cssText =
+              "display:inline-block;margin-left:6px;color:#315efb;font-weight:800;font-size:12px;";
+            content.appendChild(badge);
+          }
+
+          label.append(cb, content);
+          if (cb.checked) label.classList.add("done");
+
+          cb.addEventListener("change", () => toggleItem(key, cb.checked));
+          parent.appendChild(label);
+        }
+      });
+    }
+
+    renderItems(section[1], sec);
+    appEl.appendChild(sec);
+  });
+
+  updateProgress();
+}
+
+async function toggleItem(key, checked) {
+  if (!currentUser || isSyncing) return;
+
+  state[key] = checked;
+  if (checked) {
+    checkedBy[key] = getDisplayName(currentUser.email);
+  } else {
+    delete checkedBy[key];
+  }
+
+  render();
+
+  try {
+    await setDoc(checklistRef, {
+      state,
+      checkedBy,
+      updatedAt: new Date().toISOString(),
+      updatedBy: getDisplayName(currentUser.email)
+    }, { merge: true });
+    showStatus(`☁️ 저장됨 · ${getDisplayName(currentUser.email)}`);
+  } catch (error) {
+    console.error(error);
+    showStatus(`저장 실패: ${error.message}`, "error");
+  }
+}
+
+function updateProgress() {
+  const done = Object.values(state).filter(Boolean).length;
+  const pct = totalItems ? Math.round(done / totalItems * 100) : 0;
+  progressText.textContent = `${done} / ${totalItems} (${pct}%)`;
+  barFill.style.width = pct + "%";
+}
+
+async function loadChecklist() {
+  if (unsubscribeChecklist) {
+    unsubscribeChecklist();
+    unsubscribeChecklist = null;
+  }
+
+  if (!currentUser) {
+    state = {};
+    checkedBy = {};
+    render();
+    showStatus("🔒 로그인하면 체크 상태를 공유할 수 있습니다.");
+    return;
+  }
+
+  unsubscribeChecklist = onSnapshot(
+    checklistRef,
+    snapshot => {
+      isSyncing = true;
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        state = data.state || {};
+        checkedBy = data.checkedBy || {};
+      } else {
+        state = {};
+        checkedBy = {};
+      }
+      render();
+      isSyncing = false;
+      showStatus(`☁️ 실시간 동기화 중 · ${getDisplayName(currentUser.email)}`);
+    },
+    error => {
+      console.error(error);
+      isSyncing = false;
+      showStatus(`Firestore 연결 실패: ${error.message}`, "error");
+    }
+  );
+}
+
+function setActionButtonsEnabled(enabled) {
+  ["uncheckAllBtn", "checkAllBtn"].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = !enabled;
+  });
+}
+
+async function checkAll() {
+  if (!currentUser) return;
+  const name = getDisplayName(currentUser.email);
+  const nextState = {};
+  const nextBy = {};
+
+  for (let i = 0; i < totalItems; i++) {
+    nextState[String(i)] = true;
+    nextBy[String(i)] = name;
+  }
+
+  try {
+    await setDoc(checklistRef, {
+      state: nextState,
+      checkedBy: nextBy,
+      updatedAt: new Date().toISOString(),
+      updatedBy: name
+    }, { merge: true });
+  } catch (error) {
+    console.error(error);
+    showStatus(`저장 실패: ${error.message}`, "error");
+  }
+}
+
+async function uncheckAll() {
+  if (!currentUser) return;
+  if (!confirm("모든 체크를 해제할까요? 재환/혜리 모두의 체크 상태가 초기화됩니다.")) return;
+
+  try {
+    await setDoc(checklistRef, {
+      state: {},
+      checkedBy: {},
+      updatedAt: new Date().toISOString(),
+      updatedBy: getDisplayName(currentUser.email)
+    }, { merge: true });
+  } catch (error) {
+    console.error(error);
+    showStatus(`저장 실패: ${error.message}`, "error");
+  }
+}
+
+function clearSaved() {
+  alert("Firebase 버전에서는 브라우저의 저장 데이터 초기화를 사용하지 않습니다.\n공유 체크 상태를 초기화하려면 '전체 미완료'를 사용하세요.");
+}
+
+document.querySelector(".actions").innerHTML = `
+  <button id="uncheckAllBtn">전체 미완료</button>
+  <button id="checkAllBtn">전체 완료</button>
+  <button id="clearSavedBtn">로컬 저장 데이터 안내</button>
+`;
+document.getElementById("uncheckAllBtn").onclick = uncheckAll;
+document.getElementById("checkAllBtn").onclick = checkAll;
+document.getElementById("clearSavedBtn").onclick = clearSaved;
+
+onAuthStateChanged(auth, async user => {
+  currentUser = user;
+  renderAuthHeader();
+
+  if (user && !USERS[user.email]) {
+    await signOut(auth);
+    showStatus("⛔ 이 여행 페이지는 재환과 혜리 계정만 사용할 수 있습니다.", "error");
+    return;
+  }
+
+  if (user) {
+    showStatus(`☁️ ${getDisplayName(user.email)}님 로그인 완료`);
+  }
+
+  await loadChecklist();
+});
+
+renderAuthHeader();
+render();
+</script>
+</body>
+</html>
