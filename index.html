@@ -22,10 +22,7 @@
   .flight-route { display:grid; grid-template-columns:1fr 120px 1fr; gap:14px; align-items:center; }
   .flight-city { font-weight:800; }
   .flight-time { margin-top:2px; font-size:22px; font-weight:800; line-height:1.1; }
-  .flight-path { position:relative; color:#374151; font-size:12px; text-align:center; }
-  .flight-path::before { content:""; position:absolute; left:0; right:0; top:9px; border-top:1px solid #6b7280; }
-  .flight-path::after { content:""; position:absolute; left:4px; right:4px; top:6px; height:6px; border:1px solid #6b7280; border-left:0; border-right:0; border-radius:99px; }
-  .flight-path span { position:relative; display:inline-block; padding:0 8px; background:#ffffff; }
+  .flight-path { color:#374151; font-size:24px; font-weight:800; text-align:center; line-height:1; }
   .flight-number { text-align:right; }
   .flight-code { display:inline-block; color:#111827; font-size:18px; font-weight:900; text-decoration:underline; }
   .flight-airline { margin-top:2px; font-size:13px; color:#111827; }
@@ -69,7 +66,7 @@
           <div class="flight-city">서울 / 인천</div>
           <div class="flight-time">11:50</div>
         </div>
-        <div class="flight-path"><span>직항</span></div>
+        <div class="flight-path" aria-label="도착 방향">→</div>
         <div>
           <div class="flight-city">바르셀로나</div>
           <div class="flight-time">19:10</div>
@@ -87,7 +84,7 @@
           <div class="flight-city">바르셀로나</div>
           <div class="flight-time">20:50</div>
         </div>
-        <div class="flight-path"><span>직항</span></div>
+        <div class="flight-path" aria-label="도착 방향">→</div>
         <div>
           <div class="flight-city">서울 / 인천</div>
           <div class="flight-time">16:20<span class="next-day">+1DAY</span></div>
