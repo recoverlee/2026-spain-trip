@@ -29,6 +29,8 @@
   label:last-child { border-bottom:0; }
   input[type=checkbox] { width:20px; height:20px; margin-top:2px; accent-color:var(--accent); flex:none; }
   label.done span { text-decoration:line-through; color:var(--muted); }
+  .map-link { color:inherit; text-decoration:none; }
+  .map-link:hover { color:var(--accent); text-decoration:underline; }
   .danger { color:#b45309; font-weight:700; }
   footer { color:var(--muted); text-align:center; margin-top:24px; font-size:13px; }
   @media (max-width:600px) { h1{font-size:23px;} section{padding:15px 13px;} .wrap{padding:12px 10px 40px;} }
@@ -103,6 +105,14 @@ const USERS = {
 
 const checklistRef = doc(db, "trip", "checklist");
 
+const ACCOMMODATION_MAP_URLS = {
+  "8/28(금) — Alberg Centre Esplai": "https://www.google.com/maps/search/?api=1&query=Alberg%20Centre%20Esplai",
+  "8/29(토)~8/30(일) — Gran Hotel Sóller": "https://www.google.com/maps/search/?api=1&query=Gran%20Hotel%20Soller",
+  "8/31(월)~9/2(수) — Meliá Palma Marina": "https://www.google.com/maps/search/?api=1&query=Melia%20Palma%20Marina",
+  "9/3(목)~9/6(일) — Casp 74 Apartments": "https://www.google.com/maps/search/?api=1&query=Casp%2074%20Apartments%20Barcelona",
+  "9/7(월) — Colon Hotel Barcelona": "https://www.google.com/maps/search/?api=1&query=Colon%20Hotel%20Barcelona"
+};
+
 let state = {};
 let checkedBy = {};
 let currentUser = null;
@@ -114,10 +124,10 @@ let blockedUserSignOut = false;
 /* Existing checklist data from the original file */
 const data = [
 ["✈️ 1. 항공", [
-["OZ511 인천 → 바르셀로나 8/28 11:50 → 19:10 확인"],
-["Air Europa BCN → PMI 8/29 08:40 → 09:25 확인"],
-["Air Europa PMI → BCN 9/3 10:15 → 11:05 확인"],
-["OZ512 BCN → ICN 9/7 20:50 → 9/8 16:20 확인"],
+["OZ511 인천 → 바르셀로나 8/28(금) 11:50 → 19:10 확인"],
+["Air Europa BCN → PMI 8/29(토) 08:40 → 09:25 확인"],
+["Air Europa PMI → BCN 9/3(목) 10:15 → 11:05 확인"],
+["OZ512 BCN → ICN 9/7(월) 20:50 → 9/8(화) 16:20 확인"],
 ["Air Europa 온라인 체크인: 출발 48시간 전"],
 ["Air Europa 좌석 확인"],
 ["Air Europa 수하물 규격 확인"],
@@ -127,21 +137,21 @@ const data = [
 ["🏨 2. 숙소", [
   ["8/28(금) — Alberg Centre Esplai", [
 ["예약 확인"],["주소 저장"],["BCN → 숙소 택시/PR1 버스 동선 확인"]]],
-["8/29~8/30 — Gran Hotel Sóller", [
+["8/29(토)~8/30(일) — Gran Hotel Sóller", [
 ["예약 확인"],["체크인 시간 확인"],["주차 1대 예약 여부 확인"],["주차비 €18/일 확인"],["허니문 요청 여부 확인"]]],
-["8/31~9/2 — Meliá Palma Marina", [
+["8/31(월)~9/2(수) — Meliá Palma Marina", [
 ["예약 확인"],["주차 가능 여부 확인"],["체크인/체크아웃 시간 확인"]]],
-["9/3~9/6 — Casp 74 Apartments", [
+["9/3(목)~9/6(일) — Casp 74 Apartments", [
 ["예약 확인"],["체크인 방법/키 수령 방법 확인"],["체크아웃 방법 확인"]]],
-["9/7 — Colon Hotel Barcelona", [
+["9/7(월) — Colon Hotel Barcelona", [
 ["예약 확인"],["공항 이동시간 확인"]]]
 ]],
 ["🚗 3. 마요르카 렌터카", [
-["Record Go 예약 확인"],["예약번호 확인"],["픽업: 8/29 10:30 PMI"],["반납: 9/3 08:00 PMI"],
+["Record Go 예약 확인"],["예약번호 확인"],["픽업: 8/29(토) 10:30 PMI"],["반납: 9/3(목) 08:00 PMI"],
 ["차량: Seat Arona 또는 동급"],["Full Coverage 확인"],["여권 준비"],["한국 운전면허증 준비"],["국제운전면허증 준비"],["결제 카드 준비"],["차량 인수 시 외관/휠/유리 사진 촬영"],["연료 상태 사진 촬영"],["차량 반납 시 사진 촬영"]
 ]],
 ["🧳 4. 짐", [
-["BCN 공항에 보관", [["28인치 캐리어 1개"],["8/29~9/3 공항 보관서비스 위치 확인"],["보관비용 확인"],["9/3 BCN 도착 후 수령 방법 확인"]]],
+["BCN 공항에 보관", [["28인치 캐리어 1개"],["8/29(토)~9/3(목) 공항 보관서비스 위치 확인"],["보관비용 확인"],["9/3(목) BCN 도착 후 수령 방법 확인"]]],
 ["마요르카로 가져갈 짐", [["20인치 캐리어 2개"],["백팩 3개"],["기내수하물 무게 측정"]]],
 ["의류", [["반팔 티셔츠 5~7장"],["반바지 3~4장"],["긴바지 1장"],["얇은 긴팔/셔츠 1~2장"],["얇은 바람막이/가디건 1장"],["속옷 6~7세트"],["양말 5~6켤레"],["잠옷"],["수영복 1~2벌"],["샌들/슬리퍼"],["편한 운동화"],["모자"],["선글라스"]]]
 ]],
@@ -155,7 +165,7 @@ const data = [
 ["발데모사 수도원/피아노 공연"],["Restaurante La Posada 13:00 예약 확인"],["드라크 동굴 예약시간 확인"],["사그라다 파밀리아 예약 확인"],["카사 바트요 예약 확인"],["카사 밀라 예약 확인"],["구엘공원 예약 확인"],["피카소 미술관 예약 확인"],["카탈루냐 음악당 예약 확인"],["FC Barcelona 관련 예약 확인"],["바르셀로나 동물원 예약 확인"]
 ]],
 ["🗺️ 8. 이동", [
-["8/28 BCN → Alberg Centre Esplai 이동방법 결정"],["8/29 숙소 → BCN T1 이동방법 결정"],["BCN T1 수하물 보관 위치 확인"],["8/29 PMI 도착 → Record Go 이동방법 확인"],["9/3 렌터카 08:00 반납"],["9/3 PMI → BCN 10:15 비행"],["BCN 도착 후 보관짐 수령"],["바르셀로나 대중교통 패스 종류 최종 결정"],["필요 시 Bolt/Uber 이용"]
+["8/28(금) BCN → Alberg Centre Esplai 이동방법 결정"],["8/29(토) 숙소 → BCN T1 이동방법 결정"],["BCN T1 수하물 보관 위치 확인"],["8/29(토) PMI 도착 → Record Go 이동방법 확인"],["9/3(목) 렌터카 08:00 반납"],["9/3(목) PMI → BCN 10:15 비행"],["BCN 도착 후 보관짐 수령"],["바르셀로나 대중교통 패스 종류 최종 결정"],["필요 시 Bolt/Uber 이용"]
 ]],
 ["🩹 9. 개인용품", [
 ["상비약"],["소화제"],["진통제"],["밴드"],["멀미약"],["선크림"],["보습제"],["세면도구"],["렌즈/안경"],["물티슈/휴지"],["아이 개인용품"]
@@ -280,7 +290,18 @@ function render() {
       items.forEach(item => {
         if (Array.isArray(item[1])) {
           const h3 = document.createElement("h3");
-          h3.textContent = item[0];
+          const mapUrl = ACCOMMODATION_MAP_URLS[item[0]];
+          if (mapUrl) {
+            const link = document.createElement("a");
+            link.href = mapUrl;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.className = "map-link";
+            link.textContent = item[0];
+            h3.appendChild(link);
+          } else {
+            h3.textContent = item[0];
+          }
           parent.appendChild(h3);
           renderItems(item[1], parent);
         } else {
