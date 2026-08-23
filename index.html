@@ -74,9 +74,9 @@ import {
 import {
   getFirestore,
   doc,
-  getDoc,
   setDoc,
-  onSnapshot
+  onSnapshot,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -98,9 +98,7 @@ const USERS = {
   "sweetylove0116@gmail.com": "혜리"
 };
 
-const storageKey = "spain_trip_checklist_2026_v1";
 const checklistRef = doc(db, "trip", "checklist");
-const userMetaRef = doc(db, "trip", "users");
 
 let state = {};
 let checkedBy = {};
@@ -108,6 +106,7 @@ let currentUser = null;
 let unsubscribeChecklist = null;
 let totalItems = 0;
 let isSyncing = false;
+let blockedUserSignOut = false;
 
 /* Existing checklist data from the original file */
 const data = [
@@ -187,6 +186,23 @@ function getDisplayName(email) {
   return USERS[email] || email || "사용자";
 }
 
+function getLoginErrorMessage(error) {
+  switch (error.code) {
+    case "auth/popup-closed-by-user":
+      return "로그인 창이 닫혔습니다. 다시 시도해 주세요.";
+    case "auth/popup-blocked":
+      return "브라우저가 로그인 창을 차단했습니다. 팝업을 허용한 뒤 다시 시도해 주세요.";
+    case "auth/cancelled-popup-request":
+      return "이미 진행 중인 로그인 요청이 있습니다. 잠시 후 다시 시도해 주세요.";
+    case "auth/network-request-failed":
+      return "네트워크 연결을 확인한 뒤 다시 시도해 주세요.";
+    case "auth/unauthorized-domain":
+      return "현재 접속한 사이트가 Firebase 로그인 승인 도메인에 등록되어 있지 않습니다.";
+    default:
+      return "Google 로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+  }
+}
+
 function renderAuthHeader() {
   let box = document.getElementById("authBox");
   if (!box) {
@@ -212,7 +228,7 @@ function renderAuthHeader() {
         await signInWithPopup(auth, provider);
       } catch (error) {
         console.error(error);
-        showStatus(`로그인 실패: ${error.message}`, "error");
+        showStatus(getLoginErrorMessage(error), "error");
       }
     };
   } else {
@@ -324,13 +340,13 @@ async function toggleItem(key, checked) {
     await setDoc(checklistRef, {
       state,
       checkedBy,
-      updatedAt: new Date().toISOString(),
+      updatedAt: serverTimestamp(),
       updatedBy: getDisplayName(currentUser.email)
     }, { merge: true });
     showStatus(`☁️ 저장됨 · ${getDisplayName(currentUser.email)}`);
   } catch (error) {
     console.error(error);
-    showStatus(`저장 실패: ${error.message}`, "error");
+    showStatus("저장에 실패했습니다. 네트워크 연결과 로그인 상태를 확인해 주세요.", "error");
   }
 }
 
@@ -374,7 +390,7 @@ async function loadChecklist() {
     error => {
       console.error(error);
       isSyncing = false;
-      showStatus(`Firestore 연결 실패: ${error.message}`, "error");
+      showStatus("체크리스트를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.", "error");
     }
   );
 }
@@ -401,12 +417,12 @@ async function checkAll() {
     await setDoc(checklistRef, {
       state: nextState,
       checkedBy: nextBy,
-      updatedAt: new Date().toISOString(),
+      updatedAt: serverTimestamp(),
       updatedBy: name
     }, { merge: true });
   } catch (error) {
     console.error(error);
-    showStatus(`저장 실패: ${error.message}`, "error");
+    showStatus("전체 완료 상태를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.", "error");
   }
 }
 
@@ -418,12 +434,12 @@ async function uncheckAll() {
     await setDoc(checklistRef, {
       state: {},
       checkedBy: {},
-      updatedAt: new Date().toISOString(),
+      updatedAt: serverTimestamp(),
       updatedBy: getDisplayName(currentUser.email)
     }, { merge: true });
   } catch (error) {
     console.error(error);
-    showStatus(`저장 실패: ${error.message}`, "error");
+    showStatus("전체 미완료 상태를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.", "error");
   }
 }
 
@@ -441,14 +457,31 @@ document.getElementById("checkAllBtn").onclick = checkAll;
 document.getElementById("clearSavedBtn").onclick = clearSaved;
 
 onAuthStateChanged(auth, async user => {
-  currentUser = user;
-  renderAuthHeader();
-
   if (user && !USERS[user.email]) {
-    await signOut(auth);
+    blockedUserSignOut = true;
+    currentUser = null;
+    appEl.innerHTML = "";
+    renderAuthHeader();
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error(error);
+    }
     showStatus("⛔ 이 여행 페이지는 재환과 혜리 계정만 사용할 수 있습니다.", "error");
     return;
   }
+
+  if (!user && blockedUserSignOut) {
+    currentUser = null;
+    appEl.innerHTML = "";
+    renderAuthHeader();
+    showStatus("⛔ 이 여행 페이지는 재환과 혜리 계정만 사용할 수 있습니다.", "error");
+    blockedUserSignOut = false;
+    return;
+  }
+
+  currentUser = user;
+  renderAuthHeader();
 
   if (user) {
     showStatus(`☁️ ${getDisplayName(user.email)}님 로그인 완료`);
@@ -458,7 +491,6 @@ onAuthStateChanged(auth, async user => {
 });
 
 renderAuthHeader();
-render();
 </script>
 </body>
 </html>
