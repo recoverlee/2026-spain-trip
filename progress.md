@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24
+Last updated: 2026-08-23
 
 ## Project Overview
 
@@ -16,17 +16,17 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 ## Current Git State
 
-Latest pushed commit before adding schedule accommodation links:
+Latest pushed commit before fixing stay ranges and handoff days:
 
-- `e343ed9 docs: sync progress.md with actual repository state`
+- `46070fe feat: add accommodation links to schedule`
 
 State:
 
 - current change set modifies `index.html` and `progress.md`
-- this change adds daily accommodation links to the schedule tab
+- this change fixes accommodation stay ranges and handoff-day labels
 - existing schedule CRUD, checklist, auth, and Firestore sync behavior should remain unchanged
 
-These changes add daily accommodation links to the schedule tab while preserving the existing schedule CRUD, checklist, auth, and Firestore sync behavior.
+These changes fix accommodation stay ranges in the checklist and make schedule headers show hotel handoff days as `숙소1 -> 숙소2`.
 
 ## Authorized Users
 
@@ -61,8 +61,8 @@ Document fields:
 Important compatibility note:
 
 - Checklist item count remains `118`.
-- Checklist item labels and order were verified unchanged after the current expansion work.
-- This preserves existing Firestore checkbox keys.
+- Checklist item count is preserved to protect existing Firestore checkbox keys.
+- When checklist text is intentionally corrected, keep the flattened item count stable unless a key migration is planned.
 
 ### Schedule
 
@@ -91,6 +91,7 @@ Current UI:
 - `일정` tab
 - date-grouped timeline for `2026-08-28` through `2026-09-08`
 - daily accommodation link shown beside dates where a hotel is assigned
+- changeover days display as `숙소1 -> 숙소2`
 - `+ 일정 추가`
 - add/edit/delete forms
 - realtime Firestore subscription via `onSnapshot`
@@ -260,16 +261,27 @@ Committed and pushed:
 
 ### Schedule Accommodation Links
 
-Implemented in the current change set:
+Committed and pushed:
+
+- `46070fe feat: add accommodation links to schedule`
 
 - Added daily accommodation links to the schedule tab date headers.
 - Reused the existing Google Maps accommodation URL mapping.
 - Mapped multi-night stays to each applicable date.
 - Left `2026-09-08` without accommodation because it is the return-arrival day.
 
+### Accommodation Range Fixes
+
+Implemented in the current change set:
+
+- Removed `Colon Hotel Barcelona` from checklist and schedule accommodation mapping.
+- Extended `Casp 74 Apartments` stay through `9/7(월)` checkout.
+- Updated checklist accommodation ranges to include checkout dates.
+- Updated schedule headers so handoff days show `숙소1 -> 숙소2`.
+
 ## Local Verification Results
 
-Latest local verification after adding schedule accommodation links:
+Latest local verification after fixing accommodation ranges:
 
 - JavaScript module syntax check: PASS
 - `sw.js` syntax check: PASS
@@ -277,9 +289,10 @@ Latest local verification after adding schedule accommodation links:
 - `firebase.json` JSON parse: PASS
 - `git diff --check`: PASS
 - duplicate HTML id check: PASS
-- checklist data compatibility check: PASS, `10` sections / `118` items unchanged
+- checklist data compatibility check: PASS, flattened checklist count remains `118`
 - payer removal check: PASS, no `payer` or `결제자` reference remains in `index.html`
 - schedule accommodation link check: PASS, daily accommodation mapping is present for hotel nights
+- accommodation range fix check: PASS, `Colon Hotel Barcelona` is removed and handoff days are mapped
 - service worker cache name check: PASS, `spain-trip-pwa-v2`
 - Firebase init code presence: PASS
 - Google Auth flow code presence: PASS

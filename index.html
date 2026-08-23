@@ -334,57 +334,56 @@ const scheduleCollection = collection(db, "tripData", "schedule", "items");
 const expensesCollection = collection(db, "tripData", "expenses", "items");
 
 const ACCOMMODATION_MAP_URLS = {
-  "8/28(금) — Alberg Centre Esplai": "https://www.google.com/maps/search/?api=1&query=Alberg%20Centre%20Esplai",
-  "8/29(토)~8/30(일) — Gran Hotel Sóller": "https://www.google.com/maps/search/?api=1&query=Gran%20Hotel%20Soller",
-  "8/31(월)~9/2(수) — Meliá Palma Marina": "https://www.google.com/maps/search/?api=1&query=Melia%20Palma%20Marina",
-  "9/3(목)~9/6(일) — Casp 74 Apartments": "https://www.google.com/maps/search/?api=1&query=Casp%2074%20Apartments%20Barcelona",
-  "9/7(월) — Colon Hotel Barcelona": "https://www.google.com/maps/search/?api=1&query=Colon%20Hotel%20Barcelona"
+  "8/28(금)~8/29(토) — Alberg Centre Esplai": "https://www.google.com/maps/search/?api=1&query=Alberg%20Centre%20Esplai",
+  "8/29(토)~8/31(월) — Gran Hotel Sóller": "https://www.google.com/maps/search/?api=1&query=Gran%20Hotel%20Soller",
+  "8/31(월)~9/3(목) — Meliá Palma Marina": "https://www.google.com/maps/search/?api=1&query=Melia%20Palma%20Marina",
+  "9/3(목)~9/7(월) — Casp 74 Apartments": "https://www.google.com/maps/search/?api=1&query=Casp%2074%20Apartments%20Barcelona"
 };
 
 const DAILY_ACCOMMODATIONS = {
   "2026-08-28": {
     name: "Alberg Centre Esplai",
-    url: ACCOMMODATION_MAP_URLS["8/28(금) — Alberg Centre Esplai"]
+    url: ACCOMMODATION_MAP_URLS["8/28(금)~8/29(토) — Alberg Centre Esplai"]
   },
   "2026-08-29": {
-    name: "Gran Hotel Sóller",
-    url: ACCOMMODATION_MAP_URLS["8/29(토)~8/30(일) — Gran Hotel Sóller"]
+    name: "Alberg Centre Esplai -> Gran Hotel Sóller",
+    url: ACCOMMODATION_MAP_URLS["8/29(토)~8/31(월) — Gran Hotel Sóller"]
   },
   "2026-08-30": {
     name: "Gran Hotel Sóller",
-    url: ACCOMMODATION_MAP_URLS["8/29(토)~8/30(일) — Gran Hotel Sóller"]
+    url: ACCOMMODATION_MAP_URLS["8/29(토)~8/31(월) — Gran Hotel Sóller"]
   },
   "2026-08-31": {
-    name: "Meliá Palma Marina",
-    url: ACCOMMODATION_MAP_URLS["8/31(월)~9/2(수) — Meliá Palma Marina"]
+    name: "Gran Hotel Sóller -> Meliá Palma Marina",
+    url: ACCOMMODATION_MAP_URLS["8/31(월)~9/3(목) — Meliá Palma Marina"]
   },
   "2026-09-01": {
     name: "Meliá Palma Marina",
-    url: ACCOMMODATION_MAP_URLS["8/31(월)~9/2(수) — Meliá Palma Marina"]
+    url: ACCOMMODATION_MAP_URLS["8/31(월)~9/3(목) — Meliá Palma Marina"]
   },
   "2026-09-02": {
     name: "Meliá Palma Marina",
-    url: ACCOMMODATION_MAP_URLS["8/31(월)~9/2(수) — Meliá Palma Marina"]
+    url: ACCOMMODATION_MAP_URLS["8/31(월)~9/3(목) — Meliá Palma Marina"]
   },
   "2026-09-03": {
-    name: "Casp 74 Apartments",
-    url: ACCOMMODATION_MAP_URLS["9/3(목)~9/6(일) — Casp 74 Apartments"]
+    name: "Meliá Palma Marina -> Casp 74 Apartments",
+    url: ACCOMMODATION_MAP_URLS["9/3(목)~9/7(월) — Casp 74 Apartments"]
   },
   "2026-09-04": {
     name: "Casp 74 Apartments",
-    url: ACCOMMODATION_MAP_URLS["9/3(목)~9/6(일) — Casp 74 Apartments"]
+    url: ACCOMMODATION_MAP_URLS["9/3(목)~9/7(월) — Casp 74 Apartments"]
   },
   "2026-09-05": {
     name: "Casp 74 Apartments",
-    url: ACCOMMODATION_MAP_URLS["9/3(목)~9/6(일) — Casp 74 Apartments"]
+    url: ACCOMMODATION_MAP_URLS["9/3(목)~9/7(월) — Casp 74 Apartments"]
   },
   "2026-09-06": {
     name: "Casp 74 Apartments",
-    url: ACCOMMODATION_MAP_URLS["9/3(목)~9/6(일) — Casp 74 Apartments"]
+    url: ACCOMMODATION_MAP_URLS["9/3(목)~9/7(월) — Casp 74 Apartments"]
   },
   "2026-09-07": {
-    name: "Colon Hotel Barcelona",
-    url: ACCOMMODATION_MAP_URLS["9/7(월) — Colon Hotel Barcelona"]
+    name: "Casp 74 Apartments",
+    url: ACCOMMODATION_MAP_URLS["9/3(목)~9/7(월) — Casp 74 Apartments"]
   }
 };
 
@@ -424,16 +423,14 @@ const data = [
 ["백팩이 40×30×15cm 규격에 들어가는지 확인"]
 ]],
 ["🏨 2. 숙소", [
-  ["8/28(금) — Alberg Centre Esplai", [
+  ["8/28(금)~8/29(토) — Alberg Centre Esplai", [
 ["예약 확인"],["주소 저장"],["BCN → 숙소 택시/PR1 버스 동선 확인"]]],
-["8/29(토)~8/30(일) — Gran Hotel Sóller", [
+["8/29(토)~8/31(월) — Gran Hotel Sóller", [
 ["예약 확인"],["체크인 시간 확인"],["주차 1대 예약 여부 확인"],["주차비 €18/일 확인"],["허니문 요청 여부 확인"]]],
-["8/31(월)~9/2(수) — Meliá Palma Marina", [
+["8/31(월)~9/3(목) — Meliá Palma Marina", [
 ["예약 확인"],["주차 가능 여부 확인"],["체크인/체크아웃 시간 확인"]]],
-["9/3(목)~9/6(일) — Casp 74 Apartments", [
-["예약 확인"],["체크인 방법/키 수령 방법 확인"],["체크아웃 방법 확인"]]],
-["9/7(월) — Colon Hotel Barcelona", [
-["예약 확인"],["공항 이동시간 확인"]]]
+["9/3(목)~9/7(월) — Casp 74 Apartments", [
+["예약 확인"],["체크인 방법/키 수령 방법 확인"],["체크아웃 방법 확인"],["9/7(월) 체크아웃 준비 확인"],["공항 이동시간 확인"]]]
 ]],
 ["🚗 3. 마요르카 렌터카", [
 ["Record Go 예약 확인"],["예약번호 확인"],["픽업: 8/29(토) 10:30 PMI"],["반납: 9/3(목) 08:00 PMI"],
