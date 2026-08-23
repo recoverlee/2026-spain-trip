@@ -16,18 +16,16 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 ## Current Git State
 
-Latest pushed commit before the travel-management expansion:
+Latest pushed commit before removing expense payer:
 
-- `55b2e71 fix: simplify flight route arrow`
+- `0f26a09 feat: expand trip app with schedule and expenses`
 
 Current finalization change set:
 
 - `index.html` modified
-- `firebase.json` added
-- `firestore.rules` added
-- `progress.md` added
+- `progress.md` modified
 
-These changes implement the first travel-management expansion and are intended to be committed and pushed together.
+These changes remove payer tracking from expenses while preserving the existing schedule, checklist, auth, and Firestore sync behavior.
 
 ## Authorized Users
 
@@ -110,7 +108,6 @@ Fields:
 - `dateTime`: local datetime string
 - `category`: one of `식비`, `교통`, `숙박`, `관광`, `쇼핑`, `통신`, `기타`
 - `title`
-- `payer`: `재환` or `혜리`
 - `note`: optional
 - `createdAt`: Firestore `serverTimestamp()`
 - `createdBy`: display name
@@ -128,8 +125,6 @@ Current UI:
   - total expenses
   - today expenses
   - category totals
-  - 재환 totals
-  - 혜리 totals
 
 ## Firestore Security Rules
 
@@ -237,7 +232,9 @@ Committed and pushed:
 
 ### Travel Management Expansion
 
-Implemented in the current finalization change set:
+Committed and pushed:
+
+- `0f26a09 feat: expand trip app with schedule and expenses`
 
 - Added tabs: `일정`, `지출`, `체크리스트`.
 - Moved existing checklist UI into the `체크리스트` tab.
@@ -246,6 +243,16 @@ Implemented in the current finalization change set:
 - Added expense summary UI.
 - Added `firestore.rules`.
 - Added `firebase.json`.
+
+### Expense Payer Removal
+
+Implemented in the current change set:
+
+- Removed `결제자` from the expense form.
+- Stopped writing `payer` on new or edited expense documents.
+- Removed payer tag from expense list items.
+- Removed `재환 지출` and `혜리 지출` summary cards.
+- Kept total, today, and category expense summaries.
 
 ## Local Verification Results
 

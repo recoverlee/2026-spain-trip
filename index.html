@@ -242,13 +242,6 @@
             <option value="기타">기타</option>
           </select>
         </div>
-        <div>
-          <span class="field-label">결제자</span>
-          <select id="expensePayer">
-            <option value="재환">재환</option>
-            <option value="혜리">혜리</option>
-          </select>
-        </div>
         <div class="full">
           <span class="field-label">내용</span>
           <input type="text" id="expenseTitle" placeholder="예: 저녁 식사" required>
@@ -884,7 +877,6 @@ function resetExpenseForm() {
   document.getElementById("expenseCurrency").value = "EUR";
   document.getElementById("expenseDateTime").value = getDateTimeLocalValue();
   document.getElementById("expenseCategory").value = "식비";
-  document.getElementById("expensePayer").value = currentUser ? getDisplayName(currentUser.email) : "재환";
   document.getElementById("expenseTitle").value = "";
   document.getElementById("expenseNote").value = "";
 }
@@ -898,7 +890,6 @@ function openExpenseForm(expense = null) {
     document.getElementById("expenseCurrency").value = expense.currency || "EUR";
     document.getElementById("expenseDateTime").value = expense.dateTime || getDateTimeLocalValue();
     document.getElementById("expenseCategory").value = expense.category || "식비";
-    document.getElementById("expensePayer").value = expense.payer || "재환";
     document.getElementById("expenseTitle").value = expense.title || "";
     document.getElementById("expenseNote").value = expense.note || "";
   }
@@ -915,8 +906,7 @@ function calculateExpenseTotals() {
   const totals = {
     total: {},
     today: {},
-    byCategory: {},
-    byPayer: { "재환": {}, "혜리": {} }
+    byCategory: {}
   };
   const today = getTodayDateString();
 
@@ -930,9 +920,6 @@ function calculateExpenseTotals() {
     const category = expense.category || "기타";
     totals.byCategory[category] = totals.byCategory[category] || {};
     totals.byCategory[category][currency] = (totals.byCategory[category][currency] || 0) + amount;
-    const payer = expense.payer || "재환";
-    totals.byPayer[payer] = totals.byPayer[payer] || {};
-    totals.byPayer[payer][currency] = (totals.byPayer[payer][currency] || 0) + amount;
   });
 
   return totals;
@@ -953,8 +940,6 @@ function renderExpenses() {
   expenseSummaryEl.innerHTML = `
     <div class="summary-card"><div class="summary-label">총 지출</div><div class="summary-value">${formatMoneyGroup(totals.total)}</div></div>
     <div class="summary-card"><div class="summary-label">오늘 지출</div><div class="summary-value">${formatMoneyGroup(totals.today)}</div></div>
-    <div class="summary-card"><div class="summary-label">재환 지출</div><div class="summary-value">${formatMoneyGroup(totals.byPayer["재환"])}</div></div>
-    <div class="summary-card"><div class="summary-label">혜리 지출</div><div class="summary-value">${formatMoneyGroup(totals.byPayer["혜리"])}</div></div>
     <div class="summary-card category-list"><div class="summary-label">카테고리별 지출</div>${categoryRows}</div>
   `;
 
@@ -974,7 +959,6 @@ function renderExpenses() {
       </div>
       <div class="expense-tags">
         <span class="tag">${escapeHtml(expense.category || "기타")}</span>
-        <span class="tag">${escapeHtml(expense.payer || "")}</span>
       </div>
       ${expense.note ? `<div class="item-note">${escapeHtml(expense.note)}</div>` : ""}
       <div class="item-actions">
@@ -990,19 +974,12 @@ async function saveExpense(event) {
   if (!currentUser) return;
 
   const id = document.getElementById("expenseId").value;
-  const payer = document.getElementById("expensePayer").value;
-  if (!["재환", "혜리"].includes(payer)) {
-    showStatus("결제자는 재환 또는 혜리만 선택할 수 있습니다.", "error");
-    return;
-  }
-
   const payload = {
     amount: Number(document.getElementById("expenseAmount").value || 0),
     currency: document.getElementById("expenseCurrency").value,
     dateTime: document.getElementById("expenseDateTime").value,
     category: document.getElementById("expenseCategory").value,
     title: document.getElementById("expenseTitle").value.trim(),
-    payer,
     note: document.getElementById("expenseNote").value.trim(),
     updatedAt: serverTimestamp(),
     updatedBy: getDisplayName(currentUser.email)
