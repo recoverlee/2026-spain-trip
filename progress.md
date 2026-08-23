@@ -16,16 +16,17 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 ## Current Git State
 
-Latest pushed commit before removing expense payer:
+Latest commit:
 
-- `0f26a09 feat: expand trip app with schedule and expenses`
+- `ce4828f fix: remove payer from expenses`
 
-Current finalization change set:
+State:
 
-- `index.html` modified
-- `progress.md` modified
+- working tree clean, no uncommitted changes
+- `origin/main` is at `ce4828f`
+- working branch `claude/progress-md-review-23dfmg` is at `ce4828f`
 
-These changes remove payer tracking from expenses while preserving the existing schedule, checklist, auth, and Firestore sync behavior.
+`ce4828f` touched `index.html` and `progress.md`. It removed payer tracking from expenses while preserving the existing schedule, checklist, auth, and Firestore sync behavior.
 
 ## Authorized Users
 
@@ -246,7 +247,9 @@ Committed and pushed:
 
 ### Expense Payer Removal
 
-Implemented in the current change set:
+Committed and pushed:
+
+- `ce4828f fix: remove payer from expenses`
 
 - Removed `결제자` from the expense form.
 - Stopped writing `payer` on new or edited expense documents.
@@ -256,7 +259,7 @@ Implemented in the current change set:
 
 ## Local Verification Results
 
-Latest local verification after travel management expansion:
+Latest local verification, re-confirmed against the working tree at `ce4828f`:
 
 - JavaScript module syntax check: PASS
 - `sw.js` syntax check: PASS
@@ -264,7 +267,9 @@ Latest local verification after travel management expansion:
 - `firebase.json` JSON parse: PASS
 - `git diff --check`: PASS
 - duplicate HTML id check: PASS
-- checklist data compatibility check: PASS, `118` items unchanged
+- checklist data compatibility check: PASS, `10` sections / `118` items unchanged
+- payer removal check: PASS, no `payer` or `결제자` reference remains in `index.html`
+- service worker cache name check: PASS, `spain-trip-pwa-v2`
 - Firebase init code presence: PASS
 - Google Auth flow code presence: PASS
 - checklist Firestore sync code presence: PASS
@@ -279,11 +284,10 @@ Latest local verification after travel management expansion:
 
 Recommended next steps:
 
-1. Review the current uncommitted UI in a browser on desktop and mobile viewport.
+1. Review the current UI in a browser on desktop and mobile viewport.
 2. Confirm whether seed schedule items should be added automatically or entered manually in the app.
-3. Deploy Firestore Rules after review.
+3. Deploy Firestore Rules after review. They are still not deployed, so production Firestore is not yet protected by them.
 4. Test Schedule and Expense CRUD with the two allowed Google accounts.
-5. Commit and push only after user approval.
 
 Potential future improvements:
 
