@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#315efb">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
 <title>🇪🇸 2026 스페인 여행 출국 전 최종 체크리스트</title>
 <style>
   :root { --bg:#f5f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280; --accent:#315efb; --line:#e5e7eb; }
@@ -491,6 +494,14 @@ onAuthStateChanged(auth, async user => {
 });
 
 renderAuthHeader();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(error => {
+      console.error("Service Worker registration failed:", error);
+    });
+  });
+}
 </script>
 </body>
 </html>
