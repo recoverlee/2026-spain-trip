@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-23
+Last updated: 2026-08-24
 
 ## Project Overview
 
@@ -16,17 +16,17 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 ## Current Git State
 
-Latest commit:
+Latest pushed commit before adding schedule accommodation links:
 
-- `ce4828f fix: remove payer from expenses`
+- `e343ed9 docs: sync progress.md with actual repository state`
 
 State:
 
-- working tree clean, no uncommitted changes
-- `origin/main` is at `ce4828f`
-- working branch `claude/progress-md-review-23dfmg` is at `ce4828f`
+- current change set modifies `index.html` and `progress.md`
+- this change adds daily accommodation links to the schedule tab
+- existing schedule CRUD, checklist, auth, and Firestore sync behavior should remain unchanged
 
-`ce4828f` touched `index.html` and `progress.md`. It removed payer tracking from expenses while preserving the existing schedule, checklist, auth, and Firestore sync behavior.
+These changes add daily accommodation links to the schedule tab while preserving the existing schedule CRUD, checklist, auth, and Firestore sync behavior.
 
 ## Authorized Users
 
@@ -90,6 +90,7 @@ Current UI:
 
 - `일정` tab
 - date-grouped timeline for `2026-08-28` through `2026-09-08`
+- daily accommodation link shown beside dates where a hotel is assigned
 - `+ 일정 추가`
 - add/edit/delete forms
 - realtime Firestore subscription via `onSnapshot`
@@ -257,9 +258,18 @@ Committed and pushed:
 - Removed `재환 지출` and `혜리 지출` summary cards.
 - Kept total, today, and category expense summaries.
 
+### Schedule Accommodation Links
+
+Implemented in the current change set:
+
+- Added daily accommodation links to the schedule tab date headers.
+- Reused the existing Google Maps accommodation URL mapping.
+- Mapped multi-night stays to each applicable date.
+- Left `2026-09-08` without accommodation because it is the return-arrival day.
+
 ## Local Verification Results
 
-Latest local verification, re-confirmed against the working tree at `ce4828f`:
+Latest local verification after adding schedule accommodation links:
 
 - JavaScript module syntax check: PASS
 - `sw.js` syntax check: PASS
@@ -269,6 +279,7 @@ Latest local verification, re-confirmed against the working tree at `ce4828f`:
 - duplicate HTML id check: PASS
 - checklist data compatibility check: PASS, `10` sections / `118` items unchanged
 - payer removal check: PASS, no `payer` or `결제자` reference remains in `index.html`
+- schedule accommodation link check: PASS, daily accommodation mapping is present for hotel nights
 - service worker cache name check: PASS, `spain-trip-pwa-v2`
 - Firebase init code presence: PASS
 - Google Auth flow code presence: PASS

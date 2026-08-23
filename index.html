@@ -50,7 +50,9 @@
   .form-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
   .empty { padding:18px; color:var(--muted); text-align:center; background:#fff; border:1px dashed var(--line); border-radius:14px; }
   .timeline-day { margin:14px 0; }
-  .timeline-date { margin:0 0 8px; font-size:18px; font-weight:900; }
+  .timeline-date { display:flex; justify-content:space-between; align-items:center; gap:10px; margin:0 0 8px; font-size:18px; font-weight:900; }
+  .timeline-stay { color:var(--accent); font-size:14px; font-weight:900; text-align:right; text-decoration:none; }
+  .timeline-stay:hover { text-decoration:underline; }
   .timeline-list { display:grid; gap:8px; }
   .timeline-item { display:grid; grid-template-columns:60px 1fr; gap:12px; background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px; box-shadow:0 3px 14px #00000006; }
   .timeline-time { color:var(--accent); font-weight:900; }
@@ -97,6 +99,8 @@
     .form-grid { grid-template-columns:1fr; }
     .expense-summary { grid-template-columns:1fr; }
     .timeline-item { grid-template-columns:48px 1fr; }
+    .timeline-date { align-items:flex-start; flex-direction:column; gap:3px; }
+    .timeline-stay { text-align:left; }
     .tabs { gap:6px; padding:6px; }
     .tab-btn { padding:10px 8px; }
   }
@@ -335,6 +339,53 @@ const ACCOMMODATION_MAP_URLS = {
   "8/31(월)~9/2(수) — Meliá Palma Marina": "https://www.google.com/maps/search/?api=1&query=Melia%20Palma%20Marina",
   "9/3(목)~9/6(일) — Casp 74 Apartments": "https://www.google.com/maps/search/?api=1&query=Casp%2074%20Apartments%20Barcelona",
   "9/7(월) — Colon Hotel Barcelona": "https://www.google.com/maps/search/?api=1&query=Colon%20Hotel%20Barcelona"
+};
+
+const DAILY_ACCOMMODATIONS = {
+  "2026-08-28": {
+    name: "Alberg Centre Esplai",
+    url: ACCOMMODATION_MAP_URLS["8/28(금) — Alberg Centre Esplai"]
+  },
+  "2026-08-29": {
+    name: "Gran Hotel Sóller",
+    url: ACCOMMODATION_MAP_URLS["8/29(토)~8/30(일) — Gran Hotel Sóller"]
+  },
+  "2026-08-30": {
+    name: "Gran Hotel Sóller",
+    url: ACCOMMODATION_MAP_URLS["8/29(토)~8/30(일) — Gran Hotel Sóller"]
+  },
+  "2026-08-31": {
+    name: "Meliá Palma Marina",
+    url: ACCOMMODATION_MAP_URLS["8/31(월)~9/2(수) — Meliá Palma Marina"]
+  },
+  "2026-09-01": {
+    name: "Meliá Palma Marina",
+    url: ACCOMMODATION_MAP_URLS["8/31(월)~9/2(수) — Meliá Palma Marina"]
+  },
+  "2026-09-02": {
+    name: "Meliá Palma Marina",
+    url: ACCOMMODATION_MAP_URLS["8/31(월)~9/2(수) — Meliá Palma Marina"]
+  },
+  "2026-09-03": {
+    name: "Casp 74 Apartments",
+    url: ACCOMMODATION_MAP_URLS["9/3(목)~9/6(일) — Casp 74 Apartments"]
+  },
+  "2026-09-04": {
+    name: "Casp 74 Apartments",
+    url: ACCOMMODATION_MAP_URLS["9/3(목)~9/6(일) — Casp 74 Apartments"]
+  },
+  "2026-09-05": {
+    name: "Casp 74 Apartments",
+    url: ACCOMMODATION_MAP_URLS["9/3(목)~9/6(일) — Casp 74 Apartments"]
+  },
+  "2026-09-06": {
+    name: "Casp 74 Apartments",
+    url: ACCOMMODATION_MAP_URLS["9/3(목)~9/6(일) — Casp 74 Apartments"]
+  },
+  "2026-09-07": {
+    name: "Colon Hotel Barcelona",
+    url: ACCOMMODATION_MAP_URLS["9/7(월) — Colon Hotel Barcelona"]
+  }
 };
 
 let state = {};
@@ -814,9 +865,16 @@ function renderSchedule() {
         </div>
       </div>
     `).join("") : `<div class="empty">등록된 일정이 없습니다.</div>`;
+    const accommodation = DAILY_ACCOMMODATIONS[date];
+    const accommodationHtml = accommodation ? `
+      <a class="timeline-stay" href="${escapeAttribute(accommodation.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(accommodation.name)}</a>
+    ` : "";
     return `
       <div class="timeline-day">
-        <div class="timeline-date">${formatTripDate(date)}</div>
+        <div class="timeline-date">
+          <span>${formatTripDate(date)}</span>
+          ${accommodationHtml}
+        </div>
         <div class="timeline-list">${itemHtml}</div>
       </div>
     `;
