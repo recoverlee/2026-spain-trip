@@ -15,6 +15,21 @@
   header { background:linear-gradient(135deg,#315efb,#6d5dfc); color:#fff; border-radius:20px; padding:28px 24px; margin-bottom:18px; box-shadow:0 8px 24px #00000012; }
   h1 { margin:0 0 8px; font-size:28px; }
   .subtitle { opacity:.9; }
+  .flight-summary { margin-top:18px; overflow:hidden; background:#ffffffee; color:#111827; border-radius:14px; box-shadow:0 6px 18px #00000014; }
+  .flight-row { display:grid; grid-template-columns:140px 1fr 120px; gap:18px; align-items:center; padding:14px 18px; }
+  .flight-row + .flight-row { border-top:1px solid #e5e7eb; }
+  .flight-date { font-weight:800; white-space:nowrap; }
+  .flight-route { display:grid; grid-template-columns:1fr 120px 1fr; gap:14px; align-items:center; }
+  .flight-city { font-weight:800; }
+  .flight-time { margin-top:2px; font-size:22px; font-weight:800; line-height:1.1; }
+  .flight-path { position:relative; color:#374151; font-size:12px; text-align:center; }
+  .flight-path::before { content:""; position:absolute; left:0; right:0; top:9px; border-top:1px solid #6b7280; }
+  .flight-path::after { content:""; position:absolute; left:4px; right:4px; top:6px; height:6px; border:1px solid #6b7280; border-left:0; border-right:0; border-radius:99px; }
+  .flight-path span { position:relative; display:inline-block; padding:0 8px; background:#ffffff; }
+  .flight-number { text-align:right; }
+  .flight-code { display:inline-block; color:#111827; font-size:18px; font-weight:900; text-decoration:underline; }
+  .flight-airline { margin-top:2px; font-size:13px; color:#111827; }
+  .next-day { display:block; margin-top:2px; color:#ef4444; font-size:13px; font-weight:800; }
   .progress-box { margin-top:18px; background:#ffffff22; border-radius:12px; padding:12px 14px; }
   .progress-row { display:flex; justify-content:space-between; font-weight:700; margin-bottom:8px; }
   .bar { height:10px; background:#ffffff44; border-radius:99px; overflow:hidden; }
@@ -33,6 +48,11 @@
   .map-link:hover { color:var(--accent); text-decoration:underline; }
   .danger { color:#b45309; font-weight:700; }
   footer { color:var(--muted); text-align:center; margin-top:24px; font-size:13px; }
+  @media (max-width:700px) {
+    .flight-row { grid-template-columns:1fr; gap:10px; padding:14px; }
+    .flight-route { grid-template-columns:1fr 70px 1fr; gap:10px; }
+    .flight-number { text-align:left; }
+  }
   @media (max-width:600px) { h1{font-size:23px;} section{padding:15px 13px;} .wrap{padding:12px 10px 40px;} }
 </style>
 </head>
@@ -41,6 +61,44 @@
 <header>
   <h1>🇪🇸 2026 스페인 여행 출국 전 최종 체크리스트</h1>
   <div class="subtitle">8/28(금) ~ 9/8(화) · 10박 12일 · 성인 2명 + 아이 1명</div>
+  <div class="flight-summary" aria-label="항공편 정보">
+    <div class="flight-row">
+      <div class="flight-date">2026.8.28 (금)</div>
+      <div class="flight-route">
+        <div>
+          <div class="flight-city">서울 / 인천</div>
+          <div class="flight-time">11:50</div>
+        </div>
+        <div class="flight-path"><span>직항</span></div>
+        <div>
+          <div class="flight-city">바르셀로나</div>
+          <div class="flight-time">19:10</div>
+        </div>
+      </div>
+      <div class="flight-number">
+        <div class="flight-code">OZ511</div>
+        <div class="flight-airline">아시아나항공</div>
+      </div>
+    </div>
+    <div class="flight-row">
+      <div class="flight-date">2026.9.7 (월)</div>
+      <div class="flight-route">
+        <div>
+          <div class="flight-city">바르셀로나</div>
+          <div class="flight-time">20:50</div>
+        </div>
+        <div class="flight-path"><span>직항</span></div>
+        <div>
+          <div class="flight-city">서울 / 인천</div>
+          <div class="flight-time">16:20<span class="next-day">+1DAY</span></div>
+        </div>
+      </div>
+      <div class="flight-number">
+        <div class="flight-code">OZ512</div>
+        <div class="flight-airline">아시아나항공</div>
+      </div>
+    </div>
+  </div>
   <div class="progress-box">
     <div class="progress-row"><span>전체 진행률</span><span id="progressText">0 / 0 (0%)</span></div>
     <div class="bar"><div id="barFill"></div></div>
