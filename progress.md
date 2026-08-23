@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-23
+Last updated: 2026-08-24
 
 ## Project Overview
 
@@ -16,17 +16,20 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 ## Current Git State
 
-Latest pushed commit before fixing stay ranges and handoff days:
+Latest commit:
 
-- `46070fe feat: add accommodation links to schedule`
+- `02f4ce0 변경 내용 설명`
 
 State:
 
-- current change set modifies `index.html` and `progress.md`
-- this change fixes accommodation stay ranges and handoff-day labels
-- existing schedule CRUD, checklist, auth, and Firestore sync behavior should remain unchanged
+- working tree clean, no uncommitted changes
+- `origin/main` is at `02f4ce0`
 
-These changes fix accommodation stay ranges in the checklist and make schedule headers show hotel handoff days as `숙소1 -> 숙소2`.
+`02f4ce0` touched `index.html` and `progress.md`. It fixed accommodation stay ranges in the checklist and made schedule headers show hotel handoff days as `숙소1 -> 숙소2`, while leaving schedule CRUD, checklist, auth, and Firestore sync behavior unchanged.
+
+Note on commit naming:
+
+- `02f4ce0` was pushed with the placeholder subject `변경 내용 설명`. It is already on `main`, so it is left as is rather than rewriting published history.
 
 ## Authorized Users
 
@@ -63,6 +66,13 @@ Important compatibility note:
 - Checklist item count remains `118`.
 - Checklist item count is preserved to protect existing Firestore checkbox keys.
 - When checklist text is intentionally corrected, keep the flattened item count stable unless a key migration is planned.
+
+Known index drift at `02f4ce0`:
+
+- Removing `Colon Hotel Barcelona` (2 items) and adding 2 items to `Casp 74 Apartments` kept the total at `118`, but shifted the meaning of one flattened index.
+- Flattened index `23` changed from `예약 확인` (Colon Hotel Barcelona) to `9/7(월) 체크아웃 준비 확인` (Casp 74 Apartments).
+- The other `117` indexes keep their previous labels.
+- Any `state` or `checkedBy` value already stored for index `23` now applies to the new item, so that one checkbox should be reviewed in the app.
 
 ### Schedule
 
@@ -272,7 +282,9 @@ Committed and pushed:
 
 ### Accommodation Range Fixes
 
-Implemented in the current change set:
+Committed and pushed:
+
+- `02f4ce0 변경 내용 설명`
 
 - Removed `Colon Hotel Barcelona` from checklist and schedule accommodation mapping.
 - Extended `Casp 74 Apartments` stay through `9/7(월)` checkout.
@@ -281,7 +293,7 @@ Implemented in the current change set:
 
 ## Local Verification Results
 
-Latest local verification after fixing accommodation ranges:
+Latest local verification, re-confirmed against the working tree at `02f4ce0`:
 
 - JavaScript module syntax check: PASS
 - `sw.js` syntax check: PASS
@@ -290,6 +302,7 @@ Latest local verification after fixing accommodation ranges:
 - `git diff --check`: PASS
 - duplicate HTML id check: PASS
 - checklist data compatibility check: PASS, flattened checklist count remains `118`
+- checklist index stability check: WARNING, `1` of `118` flattened indexes changed meaning at `02f4ce0`
 - payer removal check: PASS, no `payer` or `결제자` reference remains in `index.html`
 - schedule accommodation link check: PASS, daily accommodation mapping is present for hotel nights
 - accommodation range fix check: PASS, `Colon Hotel Barcelona` is removed and handoff days are mapped
@@ -309,9 +322,10 @@ Latest local verification after fixing accommodation ranges:
 Recommended next steps:
 
 1. Review the current UI in a browser on desktop and mobile viewport.
-2. Confirm whether seed schedule items should be added automatically or entered manually in the app.
-3. Deploy Firestore Rules after review. They are still not deployed, so production Firestore is not yet protected by them.
-4. Test Schedule and Expense CRUD with the two allowed Google accounts.
+2. Verify checklist index `23` in the live app, since its meaning changed at `02f4ce0`.
+3. Confirm whether seed schedule items should be added automatically or entered manually in the app.
+4. Deploy Firestore Rules after review. They are still not deployed, so production Firestore is not yet protected by them.
+5. Test Schedule and Expense CRUD with the two allowed Google accounts.
 
 Potential future improvements:
 
