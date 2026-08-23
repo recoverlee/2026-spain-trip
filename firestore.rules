@@ -1,0 +1,26 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAllowedUser() {
+      return request.auth != null
+        && request.auth.token.email in [
+          "jhlee8379@gmail.com",
+          "sweetylove0116@gmail.com"
+        ];
+    }
+
+    match /trip/checklist {
+      allow read, write: if isAllowedUser();
+    }
+
+    match /tripData/{section}/items/{itemId} {
+      allow read, write: if isAllowedUser()
+        && section in ["schedule", "expenses"];
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
