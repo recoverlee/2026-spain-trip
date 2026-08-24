@@ -99,6 +99,19 @@
   .booking-note { margin-top:8px; padding-top:8px; border-top:1px solid #dbe4ff; color:var(--muted); font-size:12px; line-height:1.5; }
   .danger { color:#b45309; font-weight:700; }
   footer { color:var(--muted); text-align:center; margin-top:24px; font-size:13px; }
+  /* 로그인 페이지 스타일 */
+  #loginContainer { position:fixed; top:0; left:0; width:100%; height:100vh; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); display:flex; justify-content:center; align-items:center; z-index:9999; }
+  #loginContainer.hidden { display:none; }
+  #appContainer { display:block; }
+  #appContainer.hidden { display:none; }
+  .login-card { background:#fff; border-radius:20px; padding:40px 30px; box-shadow:0 20px 60px rgba(0,0,0,0.3); text-align:center; max-width:400px; }
+  .login-card h1 { margin:0 0 12px; font-size:32px; background:linear-gradient(135deg,#667eea,#764ba2); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .login-card .subtitle { color:#6b7280; margin-bottom:30px; font-size:16px; }
+  .login-card button { width:100%; padding:14px; font-size:16px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:10px; font-weight:700; cursor:pointer; transition:.2s; }
+  .login-card button:hover { transform:scale(1.02); box-shadow:0 10px 25px rgba(102,126,234,0.4); }
+  .login-loading { text-align:center; }
+  .login-loading .spinner { width:40px; height:40px; border:4px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 1s linear infinite; margin:20px auto; }
+  @keyframes spin { to { transform:rotate(360deg); } }
   @media (max-width:700px) {
     .flight-row { grid-template-columns:1fr; gap:10px; padding:14px; }
     .flight-route { grid-template-columns:1fr 70px 1fr; gap:10px; }
@@ -121,6 +134,22 @@
 </style>
 </head>
 <body>
+<!-- 로그인 페이지 -->
+<div id="loginContainer">
+  <div class="login-card">
+    <h1>🧳</h1>
+    <h1>2026 스페인 여행</h1>
+    <p class="subtitle">여행 일정 관리 앱</p>
+    <button id="googleLoginBtn">Google로 로그인</button>
+    <div id="loginLoading" class="login-loading" style="display:none; margin-top:20px;">
+      <div class="spinner"></div>
+      <p>로그인 중...</p>
+    </div>
+  </div>
+</div>
+
+<!-- 앱 페이지 (로그인 후 표시) -->
+<div id="appContainer" class="hidden">
 <div class="wrap">
 <header>
   <h1>🇪🇸 2026 스페인 여행 출국 전 최종 체크리스트</h1>
@@ -290,6 +319,7 @@
 <div id="app" hidden></div>
 <footer>🔐 Google 로그인 후 체크 상태가 Firebase에 저장되며 재환·혜리 두 사람의 화면에 실시간으로 공유됩니다.</footer>
 </div>
+</div><!-- appContainer 끝 -->
 
 <script type="module">
 /*
@@ -456,6 +486,22 @@ let totalItems = 0;
 let isSyncing = false;
 let blockedUserSignOut = false;
 let activeTab = "schedule";
+
+// UI 상태 관리 함수
+function updateAuthUI() {
+  const loginContainer = document.getElementById("loginContainer");
+  const appContainer = document.getElementById("appContainer");
+
+  if (currentUser) {
+    // 로그인됨: 앱 표시, 로그인 페이지 숨김
+    loginContainer.classList.add("hidden");
+    appContainer.classList.remove("hidden");
+  } else {
+    // 로그인 안 됨: 로그인 페이지 표시, 앱 숨김
+    loginContainer.classList.remove("hidden");
+    appContainer.classList.add("hidden");
+  }
+}
 
 const TRIP_DATES = [
   "2026-08-28", "2026-08-29", "2026-08-30", "2026-08-31",
@@ -1268,6 +1314,21 @@ function clearSharedDataViews() {
   setDataControlsEnabled(false);
 }
 
+// 로그인 버튼 이벤트
+document.getElementById("googleLoginBtn").addEventListener("click", async () => {
+  const loginLoading = document.getElementById("loginLoading");
+  loginLoading.style.display = "block";
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    // 성공 시 onAuthStateChanged에서 자동으로 처리됨
+  } catch (error) {
+    loginLoading.style.display = "none";
+    if (error.code !== "auth/popup-closed-by-user") {
+      showStatus(`⛔ 로그인 실패: ${error.message}`, "error");
+    }
+  }
+});
+
 document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.addEventListener("click", () => setActiveTab(btn.dataset.tab));
 });
@@ -1299,6 +1360,7 @@ onAuthStateChanged(auth, async user => {
     currentUser = null;
     clearSharedDataViews();
     renderAuthHeader();
+    updateAuthUI();
     try {
       await signOut(auth);
     } catch (error) {
@@ -1312,6 +1374,7 @@ onAuthStateChanged(auth, async user => {
     currentUser = null;
     clearSharedDataViews();
     renderAuthHeader();
+    updateAuthUI();
     showStatus("⛔ 이 여행 페이지는 재환과 혜리 계정만 사용할 수 있습니다.", "error");
     blockedUserSignOut = false;
     return;
@@ -1319,6 +1382,7 @@ onAuthStateChanged(auth, async user => {
 
   currentUser = user;
   renderAuthHeader();
+  updateAuthUI();
   setDataControlsEnabled(!!user);
 
   if (user) {
@@ -1330,6 +1394,7 @@ onAuthStateChanged(auth, async user => {
 });
 
 renderAuthHeader();
+updateAuthUI();
 setDataControlsEnabled(false);
 resetScheduleForm();
 resetExpenseForm();
