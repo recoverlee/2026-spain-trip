@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24
+Last updated: 2026-08-24 (reviewed and verified)
 
 ## Project Overview
 
@@ -16,20 +16,19 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 ## Current Git State
 
-Latest pushed commit before adding accommodation booking info:
+Latest pushed commits:
 
+- `d952876 docs: record GitHub Pages as the site's hosting mechanism`
+- `44e8c91 feat: show accommodation booking info in checklist (#3)`
 - `0b3d923 docs: sync progress.md with accommodation range commits (#2)`
 
-Current change set:
+Current change set: working tree clean, all features committed and merged to main
 
-- `index.html` modified
-- `progress.md` modified
+The accommodation booking info feature (commit `44e8c91`) added read-only booking info cards to the checklist accommodation headings. The flattened checklist item count and all item labels remain unchanged.
 
-These changes add read-only booking info cards to the checklist accommodation headings. The flattened checklist item count and all item labels are unchanged.
+The hosting documentation update (commit `d952876`) clarified that GitHub Pages serves the static site, not Firebase Hosting.
 
-`02f4ce0` touched `index.html` and `progress.md`. It fixed accommodation stay ranges in the checklist and made schedule headers show hotel handoff days as `숙소1 -> 숙소2`, while leaving schedule CRUD, checklist, auth, and Firestore sync behavior unchanged.
-
-Note on commit naming:
+Historical note:
 
 - `02f4ce0` was pushed with the placeholder subject `변경 내용 설명`. It is already on `main`, so it is left as is rather than rewriting published history.
 
@@ -310,7 +309,11 @@ Committed and pushed:
 
 ### Accommodation Booking Info
 
-Implemented in the current change set:
+Committed and pushed:
+
+- `44e8c91 feat: show accommodation booking info in checklist (#3)`
+
+Implementation details:
 
 - Added `ACCOMMODATION_BOOKINGS`, keyed by the same heading strings used by `ACCOMMODATION_MAP_URLS`.
 - Added `createBookingCard()` and rendered a booking card under matching accommodation headings in the checklist tab.
@@ -319,6 +322,14 @@ Implemented in the current change set:
 - Added an optional cancellation note line.
 - Entered `Gran Hotel Sóller` and `Meliá Palma Marina` from the supplied confirmations.
 - `Alberg Centre Esplai` and `Casp 74 Apartments` have no confirmation yet, so they render heading and checkboxes only.
+
+### GitHub Pages Hosting Documentation
+
+Committed and pushed:
+
+- `d952876 docs: record GitHub Pages as the site's hosting mechanism`
+
+Clarified in `progress.md` that the static site is served by GitHub Pages, not Firebase Hosting. This documentation aligns with the repository setup where `firebase.json` has no `hosting` key and there is no `.firebaserc`.
 
 ## Local Verification Results
 
@@ -353,13 +364,13 @@ Latest local verification after adding accommodation booking info:
 
 Recommended next steps:
 
-1. Review the current UI in a browser on desktop and mobile viewport.
+1. Verify booking info UI rendering with the two allowed accounts in the production app.
 2. Verify checklist index `23` in the live app, since its meaning changed at `02f4ce0`.
 3. Add booking info for `Alberg Centre Esplai` and `Casp 74 Apartments` once those confirmations are available.
-4. Confirm the breakfast policy for `Meliá Palma Marina` and change its badge from `조식 미확인`.
-5. Confirm whether seed schedule items should be added automatically or entered manually in the app.
-6. Deploy Firestore Rules after review. They are still not deployed, so production Firestore is not yet protected by them.
-7. Test Schedule and Expense CRUD with the two allowed Google accounts.
+4. Confirm the breakfast policy for `Meliá Palma Marina` and update its badge from `조식 미확인`.
+5. Test Schedule and Expense CRUD with the two allowed Google accounts to ensure realtime sync works correctly.
+6. Confirm whether seed schedule items should be added automatically or entered manually in the app.
+7. **Deploy Firestore Rules after review.** They are still not deployed, so production Firestore is not yet protected by them. Use `firebase deploy --only firestore:rules` with Firebase CLI access.
 
 Potential future improvements:
 
