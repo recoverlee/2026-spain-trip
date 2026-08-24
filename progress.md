@@ -175,6 +175,15 @@ Note:
 - Firebase CLI is not currently available in this local environment, so rules were statically reviewed but not deployed or compiled with Firebase CLI.
 - Rules still need to be deployed separately before they protect production Firestore.
 
+## Hosting and Deployment
+
+The static site (`index.html`, `manifest.webmanifest`, `sw.js`, `icons/`) is served by **GitHub Pages** from this repository, not by Firebase Hosting.
+
+- `firebase.json` has no `hosting` key and there is no `.firebaserc` in this repo. Firebase is used only for Auth and Firestore, not for serving the site.
+- There is no `.github/workflows/` file in this repo. GitHub Pages is configured directly in the repo's Settings -> Pages, most likely serving the `main` branch.
+- A merge to `main` is picked up and published automatically. No separate `firebase deploy` step is needed for site changes.
+- Firestore Rules are a separate concern from Pages hosting: pushing `firestore.rules` changes to `main` does **not** deploy them to Firestore. They still require an explicit `firebase deploy --only firestore:rules` (or equivalent) run by someone with the Firebase CLI and project access. See the Firestore Security Rules note above.
+
 ## PWA Status
 
 PWA support is already present and should be preserved.
