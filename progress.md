@@ -16,14 +16,16 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 ## Current Git State
 
-Latest commit:
+Latest pushed commit before adding accommodation booking info:
 
-- `02f4ce0 변경 내용 설명`
+- `0b3d923 docs: sync progress.md with accommodation range commits (#2)`
 
-State:
+Current change set:
 
-- working tree clean, no uncommitted changes
-- `origin/main` is at `02f4ce0`
+- `index.html` modified
+- `progress.md` modified
+
+These changes add read-only booking info cards to the checklist accommodation headings. The flattened checklist item count and all item labels are unchanged.
 
 `02f4ce0` touched `index.html` and `progress.md`. It fixed accommodation stay ranges in the checklist and made schedule headers show hotel handoff days as `숙소1 -> 숙소2`, while leaving schedule CRUD, checklist, auth, and Firestore sync behavior unchanged.
 
@@ -66,6 +68,12 @@ Important compatibility note:
 - Checklist item count remains `118`.
 - Checklist item count is preserved to protect existing Firestore checkbox keys.
 - When checklist text is intentionally corrected, keep the flattened item count stable unless a key migration is planned.
+
+Booking info is display-only:
+
+- Accommodation booking details live in the client constant `ACCOMMODATION_BOOKINGS` in `index.html`.
+- They are rendered as a card under the matching checklist accommodation heading and are not checkboxes.
+- Nothing about them is read from or written to Firestore, so checkbox keys are unaffected.
 
 Known index drift at `02f4ce0`:
 
@@ -291,9 +299,21 @@ Committed and pushed:
 - Updated checklist accommodation ranges to include checkout dates.
 - Updated schedule headers so handoff days show `숙소1 -> 숙소2`.
 
+### Accommodation Booking Info
+
+Implemented in the current change set:
+
+- Added `ACCOMMODATION_BOOKINGS`, keyed by the same heading strings used by `ACCOMMODATION_MAP_URLS`.
+- Added `createBookingCard()` and rendered a booking card under matching accommodation headings in the checklist tab.
+- Card shows reservation number, stay dates and nights, room type, occupancy, rate, guest name, and phone.
+- Breakfast status is shown as a colored badge: included, excluded, or unknown.
+- Added an optional cancellation note line.
+- Entered `Gran Hotel Sóller` and `Meliá Palma Marina` from the supplied confirmations.
+- `Alberg Centre Esplai` and `Casp 74 Apartments` have no confirmation yet, so they render heading and checkboxes only.
+
 ## Local Verification Results
 
-Latest local verification, re-confirmed against the working tree at `02f4ce0`:
+Latest local verification after adding accommodation booking info:
 
 - JavaScript module syntax check: PASS
 - `sw.js` syntax check: PASS
@@ -302,7 +322,10 @@ Latest local verification, re-confirmed against the working tree at `02f4ce0`:
 - `git diff --check`: PASS
 - duplicate HTML id check: PASS
 - checklist data compatibility check: PASS, flattened checklist count remains `118`
+- checklist index stability check: PASS for the current change set, `0` of `118` labels changed
 - checklist index stability check: WARNING, `1` of `118` flattened indexes changed meaning at `02f4ce0`
+- booking key match check: PASS, every `ACCOMMODATION_BOOKINGS` key matches an existing checklist heading
+- booking card render check: PASS, `2` cards render at `430px` and `900px` viewports via headless Chromium
 - payer removal check: PASS, no `payer` or `결제자` reference remains in `index.html`
 - schedule accommodation link check: PASS, daily accommodation mapping is present for hotel nights
 - accommodation range fix check: PASS, `Colon Hotel Barcelona` is removed and handoff days are mapped
@@ -323,9 +346,11 @@ Recommended next steps:
 
 1. Review the current UI in a browser on desktop and mobile viewport.
 2. Verify checklist index `23` in the live app, since its meaning changed at `02f4ce0`.
-3. Confirm whether seed schedule items should be added automatically or entered manually in the app.
-4. Deploy Firestore Rules after review. They are still not deployed, so production Firestore is not yet protected by them.
-5. Test Schedule and Expense CRUD with the two allowed Google accounts.
+3. Add booking info for `Alberg Centre Esplai` and `Casp 74 Apartments` once those confirmations are available.
+4. Confirm the breakfast policy for `Meliá Palma Marina` and change its badge from `조식 미확인`.
+5. Confirm whether seed schedule items should be added automatically or entered manually in the app.
+6. Deploy Firestore Rules after review. They are still not deployed, so production Firestore is not yet protected by them.
+7. Test Schedule and Expense CRUD with the two allowed Google accounts.
 
 Potential future improvements:
 
