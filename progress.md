@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (Alberg Centre Esplai booking added)
+Last updated: 2026-08-24 (Login page added)
 
 ## Project Overview
 
@@ -331,6 +331,21 @@ Committed and pushed:
 
 Clarified in `progress.md` that the static site is served by GitHub Pages, not Firebase Hosting. This documentation aligns with the repository setup where `firebase.json` has no `hosting` key and there is no `.firebaserc`.
 
+### Login Page Implementation
+
+Committed and pushed:
+
+- `940fb63 feat: add login page - show app only to authenticated users`
+
+Implemented a dedicated login page that is shown before authentication. Key changes:
+- Added full-screen login page with Google authentication button
+- App UI (tabs, checklist, schedule, expenses) is hidden until user logs in
+- Smooth transition: after successful login, app content becomes visible
+- Unauthorized users (not in USERS list) are automatically signed out
+- Loading state displayed during login process
+- Gradient background and styled login card for better UX
+- Repository remains public; personal information is now protected by authentication, not repository privacy
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -364,10 +379,11 @@ Latest local verification after adding accommodation booking info:
 
 Recommended next steps:
 
-1. Verify booking info UI rendering with the two allowed accounts in the production app.
-2. Verify checklist index `23` in the live app, since its meaning changed at `02f4ce0`.
-3. Add booking info for `Casp 74 Apartments` once the confirmation is available.
-4. Confirm the breakfast policy for `Alberg Centre Esplai` and `Meliá Palma Marina` and update their badges from `조식 미확인`.
+1. **Test login page UI** — Verify login page displays before authentication and app shows after login with both desktop and mobile viewports.
+2. Verify booking info UI rendering with the two allowed accounts in the production app.
+3. Verify checklist index `23` in the live app, since its meaning changed at `02f4ce0`.
+4. Add booking info for `Casp 74 Apartments` once the confirmation is available.
+5. Confirm the breakfast policy for `Alberg Centre Esplai` and `Meliá Palma Marina` and update their badges from `조식 미확인`.
 5. Test Schedule and Expense CRUD with the two allowed Google accounts to ensure realtime sync works correctly.
 6. Confirm whether seed schedule items should be added automatically or entered manually in the app.
 7. **Deploy Firestore Rules after review.** They are still not deployed, so production Firestore is not yet protected by them. Use `firebase deploy --only firestore:rules` with Firebase CLI access.
