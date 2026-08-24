@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (reviewed and verified)
+Last updated: 2026-08-24 (Alberg Centre Esplai booking added)
 
 ## Project Overview
 
@@ -320,8 +320,8 @@ Implementation details:
 - Card shows reservation number, stay dates and nights, room type, occupancy, rate, guest name, and phone.
 - Breakfast status is shown as a colored badge: included, excluded, or unknown.
 - Added an optional cancellation note line.
-- Entered `Gran Hotel Sóller` and `Meliá Palma Marina` from the supplied confirmations.
-- `Alberg Centre Esplai` and `Casp 74 Apartments` have no confirmation yet, so they render heading and checkboxes only.
+- Entered `Alberg Centre Esplai`, `Gran Hotel Sóller` and `Meliá Palma Marina` from the supplied confirmations.
+- `Casp 74 Apartments` still has no confirmation, so it renders heading and checkboxes only.
 
 ### GitHub Pages Hosting Documentation
 
@@ -366,8 +366,8 @@ Recommended next steps:
 
 1. Verify booking info UI rendering with the two allowed accounts in the production app.
 2. Verify checklist index `23` in the live app, since its meaning changed at `02f4ce0`.
-3. Add booking info for `Alberg Centre Esplai` and `Casp 74 Apartments` once those confirmations are available.
-4. Confirm the breakfast policy for `Meliá Palma Marina` and update its badge from `조식 미확인`.
+3. Add booking info for `Casp 74 Apartments` once the confirmation is available.
+4. Confirm the breakfast policy for `Alberg Centre Esplai` and `Meliá Palma Marina` and update their badges from `조식 미확인`.
 5. Test Schedule and Expense CRUD with the two allowed Google accounts to ensure realtime sync works correctly.
 6. Confirm whether seed schedule items should be added automatically or entered manually in the app.
 7. **Deploy Firestore Rules after review.** They are still not deployed, so production Firestore is not yet protected by them. Use `firebase deploy --only firestore:rules` with Firebase CLI access.
