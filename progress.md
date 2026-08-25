@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (booking card position fixed on 8/28 schedule; cache v5)
+Last updated: 2026-08-24 (hotel review link folded into Alberg booking card; cache v6)
 
 ## Project Overview
 
@@ -18,7 +18,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `5cc10ee chore: bump PWA cache version to v5 for booking card position fix`
+- `22b4834 chore: bump PWA cache version to v6 for hotel review link consolidation`
 
 ⚠️ **Action needed (still open from `8c36e0d`):** the custom checklist item feature added a new Firestore path (`tripData/checklistCustom/items`) and updated `firestore.rules` to allow it, but rules are still not deployed to production (see Firestore Security Rules section). Until `firebase deploy --only firestore:rules` is run, whether add/delete/check on custom items works depends on whatever rules are currently live on the `spain-trip-3006a` project — if production is still on permissive/test-mode rules it will work; if a stricter rule set without this path is live, custom item writes will fail with a permission error. Deploy the rules to be sure.
 
@@ -127,7 +127,8 @@ Current UI:
 - changeover days display as `숙소1 -> 숙소2`
 - accommodation booking card: for a date that matches an `ACCOMMODATION_BOOKINGS` entry's `checkin` field, the full booking card (breakfast badge, rows, note) renders right under that date's header — moved here from the checklist tab in commit `9458e6d`. Display-only, driven by `ACCOMMODATION_BOOKINGS_BY_CHECKIN`.
 - `SCHEDULE_DAY_NOTES` (client constant, display-only): keyed by `YYYY-MM-DD`, each value is an **array** of reference cards rendered under that date's header, above that date's Firestore-backed items. Not read from or written to Firestore.
-- **Booking card position within the day-note cards** (added in commit `6dc7416`): an `ACCOMMODATION_BOOKINGS` entry can set an optional `scheduleOrder` (integer) — the number of `SCHEDULE_DAY_NOTES` cards to render before inserting the booking card among them. Default (no `scheduleOrder`, or `0`) puts the booking card first, before all day notes. `Alberg Centre Esplai` sets `scheduleOrder: 2`, so on `2026-08-28` the order is: 인천공항 출발 계획 → 바르셀로나 공항 이동 → **[예약 카드]** → 호텔 후기. When there is no `checkinBooking` for a date, `SCHEDULE_DAY_NOTES` cards just render in their array order as before.
+- **Booking card position within the day-note cards** (added in commit `6dc7416`): an `ACCOMMODATION_BOOKINGS` entry can set an optional `scheduleOrder` (integer) — the number of `SCHEDULE_DAY_NOTES` cards to render before inserting the booking card among them. Default (no `scheduleOrder`, or `0`) puts the booking card first, before all day notes. `Alberg Centre Esplai` sets `scheduleOrder: 2`, so on `2026-08-28` the order is: 인천공항 출발 계획 → 바르셀로나 공항 이동 → **[예약 카드]** (last, since there are only 2 day notes on this date as of commit `4c05f6c`). When there is no `checkinBooking` for a date, `SCHEDULE_DAY_NOTES` cards just render in their array order as before.
+- **Booking card reference link** (added in commit `4c05f6c`): an `ACCOMMODATION_BOOKINGS` entry can optionally set a `link` field, rendered as a `🔗 참고 링크` link (opens in a new tab) at the bottom of the booking card, below the note. `Alberg Centre Esplai` uses this for its hotel review blog link — previously this lived in its own separate `SCHEDULE_DAY_NOTES` card, which has since been removed in favor of attaching the link directly to the booking card it's about.
 - `+ 일정 추가`
 - add/edit/delete forms
 - realtime Firestore subscription via `onSnapshot`
@@ -265,7 +266,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v5` (bumped for the actual schedule tab booking card position fix; `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v6` (bumped for the hotel review link consolidation; `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -584,6 +585,20 @@ Corrects a misread of an earlier request. The user asked for the `Alberg Centre 
 - `renderSchedule()` now builds `dayNoteCards` as an array of individual card HTML strings (rather than one joined string) so the booking card can be `.splice()`-inserted at the right index; the final combined markup is still a single joined string appended after the date header.
 - Bumped `sw.js` cache to `spain-trip-pwa-v5` since this is a visible layout change on an already-cached page.
 
+### Hotel Review Link Folded into Booking Card (Alberg Centre Esplai)
+
+Committed and pushed directly to `main`:
+
+- `4c05f6c feat: fold Alberg Centre Esplai hotel review link into the booking card`
+- `22b4834 chore: bump PWA cache version to v6 for hotel review link consolidation`
+
+Per user request: removed the separate "Alberg Centre Esplai 호텔 후기 (참고용)" `SCHEDULE_DAY_NOTES` card for `2026-08-28` and instead attached its link directly to the `Alberg Centre Esplai` `ACCOMMODATION_BOOKINGS` entry.
+
+- Added a `link` field to the `Alberg Centre Esplai` booking entry: `https://blog.naver.com/eudemonic005/224348941656` (same URL the removed card used).
+- Added `link` rendering to both booking-card code paths: the inline HTML template in `renderSchedule()` (the one actually shown on the schedule tab) and the DOM-based `createBookingCard()` (used for the baggage info card and available if a booking card is ever rendered elsewhere again) — both show a `🔗 참고 링크` link under the note.
+- With the review card removed, `2026-08-28` now has only 2 `SCHEDULE_DAY_NOTES` cards (departure plan, airport transit); `scheduleOrder: 2` on the booking still correctly places it last, right after the transit card — no `scheduleOrder` value change was needed since `2` already meant "after all day notes" once there were only 2.
+- Bumped `sw.js` cache to `spain-trip-pwa-v6`.
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -626,7 +641,9 @@ Latest local verification after adding accommodation booking info:
 - edit mode toggle check: PASS, clicking `editModeBtn` flips `editMode`, re-renders, and shows the controls; clicking again hides them
 - static item hide/restore check: PASS, hiding an item removes it from the default view and totals; restoring brings it back with its original `state`/`checkedBy` intact
 - `checkAll()` with a hidden item check: PASS, after fixing the `totalStaticSlots` bug, `checkAll()` checks every non-hidden static item by its correct key and does not touch the hidden item's key
-- empty `rows` day-note card render check: PASS, the hotel review card (no rows) renders its title/note/link without errors
+- empty `rows` day-note card render check (historical): the hotel review card that exercised this case was removed in commit `4c05f6c`; its `link` moved onto the `Alberg Centre Esplai` booking card instead
+- booking card link render check: PASS, `🔗 참고 링크` renders under the note on the `Alberg Centre Esplai` schedule-tab booking card, opens in a new tab
+- `SCHEDULE_DAY_NOTES["2026-08-28"]` count check: PASS, now has 2 cards (was 3); booking card `scheduleOrder: 2` still renders it last, after both
 - empty-schedule message check: PASS, `2026-08-28` (3 day-note cards, 0 Firestore items) no longer shows `등록된 일정이 없습니다`; a date with neither still shows it
 - booking card relocation check: PASS, checklist accommodation headings no longer render a booking card; `일정` tab shows the correct booking card under `2026-08-28`, `2026-08-29`, and `2026-08-31` (the three confirmed check-in dates)
 - booking card content parity check: PASS, breakfast badge tone/text, all rows (including the `code`-styled reservation number for Gran Hotel Sóller and Meliá Palma Marina), and notes all carried over unchanged to the schedule card
@@ -635,7 +652,7 @@ Latest local verification after adding accommodation booking info:
 - Casp 74 schedule card check: PASS, booking card now renders under `2026-09-03` in the `일정` tab with no code changes beyond adding the data
 - `scheduleOrder` splice logic check: PASS, simulated with `["A","B","C"]` and `scheduleOrder: 2` produces `["A","B","[booking]","C"]`; `2026-08-28` now renders 인천공항 출발 계획 → 바르셀로나 공항 이동 → 예약 카드 → 호텔 후기
 - `scheduleOrder` default/regression check: PASS, dates and bookings without `scheduleOrder` (`Gran Hotel Sóller`, `Meliá Palma Marina`, `Casp 74 Apartments`) still render their booking card before any day notes, unchanged from before this fix
-- service worker cache name check: PASS, `spain-trip-pwa-v5`
+- service worker cache name check: PASS, `spain-trip-pwa-v6`
 
 ## Future Work Notes
 
