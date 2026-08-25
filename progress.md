@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (Casp 74 Apartments booking added — all 4 stays now confirmed)
+Last updated: 2026-08-24 (Meliá Palma Marina breakfast confirmed as included)
 
 ## Project Overview
 
@@ -18,7 +18,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `0d08aca feat: add Casp 74 Apartments booking confirmation`
+- `a37482c fix: confirm Meliá Palma Marina breakfast is included, add payment breakdown`
 
 ⚠️ **Action needed (still open from `8c36e0d`):** the custom checklist item feature added a new Firestore path (`tripData/checklistCustom/items`) and updated `firestore.rules` to allow it, but rules are still not deployed to production (see Firestore Security Rules section). Until `firebase deploy --only firestore:rules` is run, whether add/delete/check on custom items works depends on whatever rules are currently live on the `spain-trip-3006a` project — if production is still on permissive/test-mode rules it will work; if a stricter rule set without this path is live, custom item writes will fail with a permission error. Deploy the rules to be sure.
 
@@ -548,6 +548,17 @@ Committed and pushed directly to `main`:
 - This is the 4th and last of the trip's accommodation bookings — all stays (`Alberg Centre Esplai`, `Gran Hotel Sóller`, `Meliá Palma Marina`, `Casp 74 Apartments`) are now fully confirmed and entered.
 - No rendering code changes were needed: because of the `ACCOMMODATION_BOOKINGS_BY_CHECKIN` lookup added in commit `9458e6d`, this booking automatically appears on the `일정` tab under `2026-09-03` (Wed 9/3) as soon as the data was added.
 
+### Meliá Palma Marina Breakfast Confirmed as Included
+
+Committed and pushed directly to `main`:
+
+- `a37482c fix: confirm Meliá Palma Marina breakfast is included, add payment breakdown`
+
+- Changed the breakfast badge from `조식 미확인` (unknown) to `조식 포함 (아동 조식 포함)` (included, child breakfast included), based on the supplied payment details screenshot.
+- Added a `룸타입` row: `Classic Room (Flexible Meliárewards)`.
+- Expanded the `요금` row from a flat total to a breakdown: room `€667.85` + child (2–11) breakfast `€139.65` = total `€807.50`, with 10% national tax included in that total.
+- This was the last of the 4 confirmed bookings with an unresolved breakfast status; all 4 accommodation cards now have a definitive breakfast badge (3 `included`, 1 `excluded` for Casp 74 Apartments).
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -607,12 +618,11 @@ Recommended next steps:
 2. Verify booking info UI rendering with the two allowed accounts in the production app — note booking cards now live in the `일정` tab under each check-in date, not the checklist tab.
 3. Verify checklist index `23` in the live app, since its meaning changed at `02f4ce0`, and indexes `97`+ in `🩹 9. 개인용품` / `🔐 10. 출국 직전` since they shifted at `425b7ee` — re-check any previously checked items in those two sections.
 4. Confirm whether the `Casp 74 Apartments` self-parking fee (€28/day) was actually paid, and update the note if so — currently marked "지불 여부 미확인" based on the supplied confirmation screenshots.
-5. Confirm the breakfast policy for `Meliá Palma Marina` and update its badge from `조식 미확인`.
-6. Test Schedule and Expense CRUD with the two allowed Google accounts to ensure realtime sync works correctly.
-7. Confirm whether seed schedule items should be added automatically or entered manually in the app.
-8. **Deploy Firestore Rules after review.** They are still not deployed, so production Firestore is not yet protected by them, and the new custom checklist item feature (`tripData/checklistCustom/items`) may not work until this is done. Use `firebase deploy --only firestore:rules` with Firebase CLI access.
-9. Test adding, checking, and deleting a custom checklist item with both allowed accounts in the production app; if it fails with a permission error, that confirms rules need deploying (see item 8).
-10. Test the checklist edit mode toggle, hiding a static item, and restoring it, in the production app with both allowed accounts, and confirm the progress bar total updates correctly when items are hidden.
+5. Test Schedule and Expense CRUD with the two allowed Google accounts to ensure realtime sync works correctly.
+6. Confirm whether seed schedule items should be added automatically or entered manually in the app.
+7. **Deploy Firestore Rules after review.** They are still not deployed, so production Firestore is not yet protected by them, and the new custom checklist item feature (`tripData/checklistCustom/items`) may not work until this is done. Use `firebase deploy --only firestore:rules` with Firebase CLI access.
+8. Test adding, checking, and deleting a custom checklist item with both allowed accounts in the production app; if it fails with a permission error, that confirms rules need deploying (see item 7).
+9. Test the checklist edit mode toggle, hiding a static item, and restoring it, in the production app with both allowed accounts, and confirm the progress bar total updates correctly when items are hidden.
 
 Potential future improvements:
 
