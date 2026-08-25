@@ -456,6 +456,7 @@ const ACCOMMODATION_BOOKINGS = {
   "8/28(금)~8/29(토) — Alberg Centre Esplai": {
     hotelName: "Alberg Centre Esplai",
     checkin: "2026-08-28",
+    scheduleOrder: 2, // "인천공항 출발 계획", "바르셀로나 공항 → 이동" 카드 다음, "호텔 후기" 카드 앞에 표시
     breakfast: "included",
     breakfastText: "조식 포함",
     rows: [
@@ -1468,7 +1469,10 @@ function renderSchedule() {
         ${checkinBooking.note ? `<p class="booking-note">${escapeHtml(checkinBooking.note)}</p>` : ""}
       </div>
     ` : "";
-    const dayNoteHtml = dayNotes.map(dayNote => `
+    // 참고 카드 순서: dayNotes 카드들 사이에 예약 카드를 끼워 넣을 수 있도록
+    // checkinBooking.scheduleOrder(예약 카드를 몇 번째 dayNote 뒤에 넣을지)를 반영한다.
+    // scheduleOrder가 없으면 기본값 0 (모든 dayNote보다 앞에 표시).
+    const dayNoteCards = dayNotes.map(dayNote => `
       <div class="booking-card">
         <div class="booking-head"><span class="booking-title">${escapeHtml(dayNote.title)}</span></div>
         <div class="booking-rows">
@@ -1480,15 +1484,23 @@ function renderSchedule() {
         ${dayNote.note ? `<p class="booking-note">${escapeHtml(dayNote.note)}</p>` : ""}
         ${dayNote.link ? `<a class="item-link" href="${escapeAttribute(dayNote.link)}" target="_blank" rel="noopener noreferrer">🔗 참고 링크</a>` : ""}
       </div>
-    `).join("");
+    `);
+    let referenceCardsHtml;
+    if (checkinBooking && bookingCardHtml) {
+      const insertAt = Math.max(0, Math.min(checkinBooking.scheduleOrder || 0, dayNoteCards.length));
+      const cards = [...dayNoteCards];
+      cards.splice(insertAt, 0, bookingCardHtml);
+      referenceCardsHtml = cards.join("");
+    } else {
+      referenceCardsHtml = dayNoteCards.join("");
+    }
     return `
       <div class="timeline-day">
         <div class="timeline-date">
           <span>${formatTripDate(date)}</span>
           ${accommodationHtml}
         </div>
-        ${bookingCardHtml}
-        ${dayNoteHtml}
+        ${referenceCardsHtml}
         <div class="timeline-list">${itemHtml}</div>
       </div>
     `;
