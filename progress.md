@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (accommodation booking cards moved from checklist to schedule tab)
+Last updated: 2026-08-24 (PWA cache bumped to v4)
 
 ## Project Overview
 
@@ -18,7 +18,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `9458e6d feat: move accommodation booking cards from checklist to schedule tab by check-in date`
+- `cb5dade chore: bump PWA cache version to v4 to force refresh of schedule tab booking card ordering`
 
 ⚠️ **Action needed (still open from `8c36e0d`):** the custom checklist item feature added a new Firestore path (`tripData/checklistCustom/items`) and updated `firestore.rules` to allow it, but rules are still not deployed to production (see Firestore Security Rules section). Until `firebase deploy --only firestore:rules` is run, whether add/delete/check on custom items works depends on whatever rules are currently live on the `spain-trip-3006a` project — if production is still on permissive/test-mode rules it will work; if a stricter rule set without this path is live, custom item writes will fail with a permission error. Deploy the rules to be sure.
 
@@ -264,7 +264,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v3` (bumped for login page + booking updates)
+- current cache name is `spain-trip-pwa-v4` (bumped again to force-refresh the schedule tab's booking card ordering)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -559,7 +559,8 @@ Latest local verification after adding accommodation booking info:
 - payer removal check: PASS, no `payer` or `결제자` reference remains in `index.html`
 - schedule accommodation link check: PASS, daily accommodation mapping is present for hotel nights
 - accommodation range fix check: PASS, `Colon Hotel Barcelona` is removed and handoff days are mapped
-- service worker cache name check: PASS, `spain-trip-pwa-v3`
+- service worker cache name check: PASS, `spain-trip-pwa-v4`
+- schedule tab card order check: PASS, `renderSchedule()` already places `bookingCardHtml` before `dayNoteHtml` in the template, so the check-in booking card renders above all `SCHEDULE_DAY_NOTES` cards (including the hotel review card) for a date with both — no ordering change was needed, cache was bumped in case a stale service worker was showing an older layout
 - Firebase init code presence: PASS
 - Google Auth flow code presence: PASS
 - checklist Firestore sync code presence: PASS
