@@ -514,6 +514,22 @@ const SECTION_BOOKING_STYLE_CARDS = {
   }
 };
 
+/* 일정 탭의 날짜 헤더 아래에 표시되는 참고 정보 카드 (날짜가 key, 표시 전용, Firestore와 무관) */
+const SCHEDULE_DAY_NOTES = {
+  "2026-08-28": {
+    title: "인천공항 출발 계획 (승용차 기준)",
+    rows: [
+      ["🚗 06:30~06:40", "수원 출발"],
+      ["🅿️ 07:50~08:10", "인천공항 주차장 도착"],
+      ["🧳 08:10~09:00", "주차 → 터미널 이동 → 체크인/수하물"],
+      ["🛂 09:00~10:00", "출국심사 및 면세구역"],
+      ["☕ 10:00~11:00", "식사/쇼핑/탑승구 이동"],
+      ["✈️ 11:50", "출발"]
+    ],
+    note: "제2여객터미널 주차장에서 버스 탑승이 수월한 정차 지점은 A · B · E · F 구역입니다. 스페인 10박 12일 여행 + 자전거 관련 짐/추가 수하물까지 고려해 06:30 수원 출발 → 08:00 전후 공항 도착으로 여유 있게 계획."
+  }
+};
+
 let state = {};
 let checkedBy = {};
 let schedules = [];
@@ -1115,12 +1131,26 @@ function renderSchedule() {
     const accommodationHtml = accommodation ? `
       <a class="timeline-stay" href="${escapeAttribute(accommodation.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(accommodation.name)}</a>
     ` : "";
+    const dayNote = SCHEDULE_DAY_NOTES[date];
+    const dayNoteHtml = dayNote ? `
+      <div class="booking-card">
+        <div class="booking-head"><span class="booking-title">${escapeHtml(dayNote.title)}</span></div>
+        <div class="booking-rows">
+          ${dayNote.rows.map(([key, value]) => `
+            <span class="booking-key">${escapeHtml(key)}</span>
+            <span class="booking-val">${escapeHtml(value)}</span>
+          `).join("")}
+        </div>
+        ${dayNote.note ? `<p class="booking-note">${escapeHtml(dayNote.note)}</p>` : ""}
+      </div>
+    ` : "";
     return `
       <div class="timeline-day">
         <div class="timeline-date">
           <span>${formatTripDate(date)}</span>
           ${accommodationHtml}
         </div>
+        ${dayNoteHtml}
         <div class="timeline-list">${itemHtml}</div>
       </div>
     `;
