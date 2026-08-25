@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (PWA cache bumped to v4)
+Last updated: 2026-08-24 (Casp 74 Apartments booking added — all 4 stays now confirmed)
 
 ## Project Overview
 
@@ -18,7 +18,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `cb5dade chore: bump PWA cache version to v4 to force refresh of schedule tab booking card ordering`
+- `0d08aca feat: add Casp 74 Apartments booking confirmation`
 
 ⚠️ **Action needed (still open from `8c36e0d`):** the custom checklist item feature added a new Firestore path (`tripData/checklistCustom/items`) and updated `firestore.rules` to allow it, but rules are still not deployed to production (see Firestore Security Rules section). Until `firebase deploy --only firestore:rules` is run, whether add/delete/check on custom items works depends on whatever rules are currently live on the `spain-trip-3006a` project — if production is still on permissive/test-mode rules it will work; if a stricter rule set without this path is live, custom item writes will fail with a permission error. Deploy the rules to be sure.
 
@@ -386,8 +386,7 @@ Implementation details:
 - Card shows reservation number, stay dates and nights, room type, occupancy, rate, guest name, and phone.
 - Breakfast status is shown as a colored badge: included, excluded, or unknown.
 - Added an optional cancellation note line.
-- Entered complete booking details for `Alberg Centre Esplai` (with payment confirmation), `Gran Hotel Sóller` and `Meliá Palma Marina` from the supplied confirmations.
-- `Casp 74 Apartments` still has no confirmation, so it renders heading and checkboxes only.
+- Entered complete booking details for `Alberg Centre Esplai` (with payment confirmation), `Gran Hotel Sóller`, `Meliá Palma Marina`, and (as of commit `0d08aca`) `Casp 74 Apartments` from the supplied confirmations. All 4 accommodation bookings are now confirmed and entered — see the new subsection below for the last one.
 - `Alberg Centre Esplai` breakfast status confirmed as included (조식 포함).
 - `Meliá Palma Marina` parking fee added: €29/night (not included in room rate, pre-booking recommended, height limit 1.90m, key pickup at front desk).
 
@@ -534,7 +533,20 @@ Committed and pushed directly to `main`:
 - `renderChecklist()` no longer renders a booking card under the accommodation `h3` heading; the heading text and its Google Maps link are unchanged, only the detailed card was removed.
 - `renderSchedule()` now renders that date's booking card (breakfast badge, all rows including the `code`-styled reservation number, and the note) directly under the date header, above any `SCHEDULE_DAY_NOTES` cards and the Firestore-backed item list. The markup is inlined as an HTML string (reusing `.booking-card`/`.booking-rows`/`.booking-badge` styling) since `renderSchedule()` builds strings, unlike the checklist's DOM-based `createBookingCard()`.
 - The empty-schedule message condition was extended again to also suppress `등록된 일정이 없습니다` when a date has a check-in booking card, even with no day notes and no Firestore items.
-- `Casp 74 Apartments` has no `ACCOMMODATION_BOOKINGS` entry yet (no confirmation received), so its check-in date (`2026-09-03`) currently shows no booking card — same limitation as before this change, just relocated.
+- `Casp 74 Apartments` had no `ACCOMMODATION_BOOKINGS` entry at the time of this commit; it was added afterward in commit `0d08aca` (see below).
+
+### Casp 74 Apartments Booking Confirmation (Final Accommodation)
+
+Committed and pushed directly to `main`:
+
+- `0d08aca feat: add Casp 74 Apartments booking confirmation`
+
+- Added the `9/3(목)~9/7(월) — Casp 74 Apartments` entry to `ACCOMMODATION_BOOKINGS`, matching the existing checklist heading key exactly.
+- Fields: `hotelName: "CASP74 아파트"`, `checkin: "2026-09-03"`, reservation number `260313304620`, supplier reference `9091200694940`, stay `2026-09-03 → 2026-09-07 (4박)`, room type (아파트, 침실 1개), occupancy (성인 2명, 아동 1명 11세), price `₩1,724,556`, guest name, contact, and address.
+- Breakfast marked `excluded` (조식 미포함) — the only one of the 4 bookings without breakfast.
+- Note field covers: free cancellation deadline (2026-08-25 18:00, already passed as of this update — no longer actionable, informational only), voucher-at-check-in requirement, Spain City Tax paid locally in cash (not included in the room rate), and the self-parking fee (€28/day) whose payment status is unconfirmed.
+- This is the 4th and last of the trip's accommodation bookings — all stays (`Alberg Centre Esplai`, `Gran Hotel Sóller`, `Meliá Palma Marina`, `Casp 74 Apartments`) are now fully confirmed and entered.
+- No rendering code changes were needed: because of the `ACCOMMODATION_BOOKINGS_BY_CHECKIN` lookup added in commit `9458e6d`, this booking automatically appears on the `일정` tab under `2026-09-03` (Wed 9/3) as soon as the data was added.
 
 ## Local Verification Results
 
@@ -583,7 +595,9 @@ Latest local verification after adding accommodation booking info:
 - empty-schedule message check: PASS, `2026-08-28` (3 day-note cards, 0 Firestore items) no longer shows `등록된 일정이 없습니다`; a date with neither still shows it
 - booking card relocation check: PASS, checklist accommodation headings no longer render a booking card; `일정` tab shows the correct booking card under `2026-08-28`, `2026-08-29`, and `2026-08-31` (the three confirmed check-in dates)
 - booking card content parity check: PASS, breakfast badge tone/text, all rows (including the `code`-styled reservation number for Gran Hotel Sóller and Meliá Palma Marina), and notes all carried over unchanged to the schedule card
-- `ACCOMMODATION_BOOKINGS_BY_CHECKIN` build check: PASS, lookup has exactly 3 entries (`2026-08-28`, `2026-08-29`, `2026-08-31`), matching the 3 confirmed bookings; `Casp 74 Apartments` correctly absent (no `checkin` field, since it has no `ACCOMMODATION_BOOKINGS` entry yet)
+- `ACCOMMODATION_BOOKINGS_BY_CHECKIN` build check: PASS, lookup now has 4 entries (`2026-08-28`, `2026-08-29`, `2026-08-31`, `2026-09-03`), one per confirmed booking
+- booking key match check (Casp 74): PASS, `9/3(목)~9/7(월) — Casp 74 Apartments` key matches the existing checklist heading exactly
+- Casp 74 schedule card check: PASS, booking card now renders under `2026-09-03` in the `일정` tab with no code changes beyond adding the data
 
 ## Future Work Notes
 
@@ -592,7 +606,7 @@ Recommended next steps:
 1. **Test login page UI** — Verify login page displays before authentication and app shows after login with both desktop and mobile viewports.
 2. Verify booking info UI rendering with the two allowed accounts in the production app — note booking cards now live in the `일정` tab under each check-in date, not the checklist tab.
 3. Verify checklist index `23` in the live app, since its meaning changed at `02f4ce0`, and indexes `97`+ in `🩹 9. 개인용품` / `🔐 10. 출국 직전` since they shifted at `425b7ee` — re-check any previously checked items in those two sections.
-4. Add booking info for `Casp 74 Apartments` once the confirmation is available — remember to include `hotelName` and `checkin: "2026-09-03"` so it also appears on the schedule tab automatically.
+4. Confirm whether the `Casp 74 Apartments` self-parking fee (€28/day) was actually paid, and update the note if so — currently marked "지불 여부 미확인" based on the supplied confirmation screenshots.
 5. Confirm the breakfast policy for `Meliá Palma Marina` and update its badge from `조식 미확인`.
 6. Test Schedule and Expense CRUD with the two allowed Google accounts to ensure realtime sync works correctly.
 7. Confirm whether seed schedule items should be added automatically or entered manually in the app.
