@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (breakfast hours, hotel review link, empty-schedule message fix)
+Last updated: 2026-08-24 (accommodation booking cards moved from checklist to schedule tab)
 
 ## Project Overview
 
@@ -18,7 +18,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `5e7baf8 feat: add breakfast hours and hotel review link; fix empty-schedule message when day notes exist`
+- `9458e6d feat: move accommodation booking cards from checklist to schedule tab by check-in date`
 
 ⚠️ **Action needed (still open from `8c36e0d`):** the custom checklist item feature added a new Firestore path (`tripData/checklistCustom/items`) and updated `firestore.rules` to allow it, but rules are still not deployed to production (see Firestore Security Rules section). Until `firebase deploy --only firestore:rules` is run, whether add/delete/check on custom items works depends on whatever rules are currently live on the `spain-trip-3006a` project — if production is still on permissive/test-mode rules it will work; if a stricter rule set without this path is live, custom item writes will fail with a permission error. Deploy the rules to be sure.
 
@@ -73,7 +73,9 @@ Important compatibility note:
 Booking info is display-only:
 
 - Accommodation booking details live in the client constant `ACCOMMODATION_BOOKINGS` in `index.html`.
-- They are rendered as a card under the matching checklist accommodation heading and are not checkboxes.
+- **As of commit `9458e6d`, these cards no longer render in the checklist tab.** They moved to the `일정` (Schedule) tab, rendered under the date matching each booking's `checkin` field (see the `Schedule` section below). The checklist accommodation heading (`h3`) and its Google Maps link are unchanged; only the detailed booking card moved.
+- Each `ACCOMMODATION_BOOKINGS` entry now also has `hotelName` (used to build the schedule card's title, `"${hotelName} 예약 정보"`) and `checkin` (`YYYY-MM-DD`, used to place the card on the right date).
+- `ACCOMMODATION_BOOKINGS_BY_CHECKIN` is an auto-built lookup (date → booking), derived once from `ACCOMMODATION_BOOKINGS` by its `checkin` field — do not hand-maintain it separately.
 - Nothing about them is read from or written to Firestore, so checkbox keys are unaffected.
 
 Section reference-info cards are also display-only:
@@ -123,7 +125,8 @@ Current UI:
 - date-grouped timeline for `2026-08-28` through `2026-09-08`
 - daily accommodation link shown beside dates where a hotel is assigned
 - changeover days display as `숙소1 -> 숙소2`
-- `SCHEDULE_DAY_NOTES` (client constant, display-only): keyed by `YYYY-MM-DD`, each value is an **array** of reference cards rendered under that date's header, above that date's Firestore-backed items. Currently used for `2026-08-28`: the airport departure plan and the airport-to-hotel transit card. Not read from or written to Firestore.
+- accommodation booking card: for a date that matches an `ACCOMMODATION_BOOKINGS` entry's `checkin` field, the full booking card (breakfast badge, rows, note) renders right under that date's header — moved here from the checklist tab in commit `9458e6d`. Display-only, driven by `ACCOMMODATION_BOOKINGS_BY_CHECKIN`.
+- `SCHEDULE_DAY_NOTES` (client constant, display-only): keyed by `YYYY-MM-DD`, each value is an **array** of reference cards rendered under the booking card (if any), above that date's Firestore-backed items. Currently used for `2026-08-28`: the airport departure plan, the airport-to-hotel transit card, and the hotel review link. Not read from or written to Firestore.
 - `+ 일정 추가`
 - add/edit/delete forms
 - realtime Firestore subscription via `onSnapshot`
@@ -520,6 +523,19 @@ Committed and pushed directly to `main`:
 - Added a third `SCHEDULE_DAY_NOTES` card for `2026-08-28`, placed after the airport-to-hotel transit card: "Alberg Centre Esplai 호텔 후기 (참고용)", linking to `https://blog.naver.com/eudemonic005/224348941656`. This card has an empty `rows` array (note + link only), confirming `createBookingCard`-style rendering handles a card with no key/value rows.
 - Fixed `renderSchedule()`: a date with no Firestore-backed schedule items but at least one `SCHEDULE_DAY_NOTES` card no longer shows the `등록된 일정이 없습니다` empty-state message, since it read as contradictory next to real reference content on the same date (e.g. `2026-08-28`, which has three day-note cards but zero Firestore schedule items). The empty message still shows for a date with neither Firestore items nor day notes.
 
+### Accommodation Booking Cards Moved to Schedule Tab
+
+Committed and pushed directly to `main`:
+
+- `9458e6d feat: move accommodation booking cards from checklist to schedule tab by check-in date`
+
+- Added `hotelName` and `checkin` (`YYYY-MM-DD`) fields to every `ACCOMMODATION_BOOKINGS` entry.
+- Added `ACCOMMODATION_BOOKINGS_BY_CHECKIN`, built once via `Object.values(ACCOMMODATION_BOOKINGS).reduce(...)`, keyed by `checkin` date.
+- `renderChecklist()` no longer renders a booking card under the accommodation `h3` heading; the heading text and its Google Maps link are unchanged, only the detailed card was removed.
+- `renderSchedule()` now renders that date's booking card (breakfast badge, all rows including the `code`-styled reservation number, and the note) directly under the date header, above any `SCHEDULE_DAY_NOTES` cards and the Firestore-backed item list. The markup is inlined as an HTML string (reusing `.booking-card`/`.booking-rows`/`.booking-badge` styling) since `renderSchedule()` builds strings, unlike the checklist's DOM-based `createBookingCard()`.
+- The empty-schedule message condition was extended again to also suppress `등록된 일정이 없습니다` when a date has a check-in booking card, even with no day notes and no Firestore items.
+- `Casp 74 Apartments` has no `ACCOMMODATION_BOOKINGS` entry yet (no confirmation received), so its check-in date (`2026-09-03`) currently shows no booking card — same limitation as before this change, just relocated.
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -564,15 +580,18 @@ Latest local verification after adding accommodation booking info:
 - `checkAll()` with a hidden item check: PASS, after fixing the `totalStaticSlots` bug, `checkAll()` checks every non-hidden static item by its correct key and does not touch the hidden item's key
 - empty `rows` day-note card render check: PASS, the hotel review card (no rows) renders its title/note/link without errors
 - empty-schedule message check: PASS, `2026-08-28` (3 day-note cards, 0 Firestore items) no longer shows `등록된 일정이 없습니다`; a date with neither still shows it
+- booking card relocation check: PASS, checklist accommodation headings no longer render a booking card; `일정` tab shows the correct booking card under `2026-08-28`, `2026-08-29`, and `2026-08-31` (the three confirmed check-in dates)
+- booking card content parity check: PASS, breakfast badge tone/text, all rows (including the `code`-styled reservation number for Gran Hotel Sóller and Meliá Palma Marina), and notes all carried over unchanged to the schedule card
+- `ACCOMMODATION_BOOKINGS_BY_CHECKIN` build check: PASS, lookup has exactly 3 entries (`2026-08-28`, `2026-08-29`, `2026-08-31`), matching the 3 confirmed bookings; `Casp 74 Apartments` correctly absent (no `checkin` field, since it has no `ACCOMMODATION_BOOKINGS` entry yet)
 
 ## Future Work Notes
 
 Recommended next steps:
 
 1. **Test login page UI** — Verify login page displays before authentication and app shows after login with both desktop and mobile viewports.
-2. Verify booking info UI rendering with the two allowed accounts in the production app.
+2. Verify booking info UI rendering with the two allowed accounts in the production app — note booking cards now live in the `일정` tab under each check-in date, not the checklist tab.
 3. Verify checklist index `23` in the live app, since its meaning changed at `02f4ce0`, and indexes `97`+ in `🩹 9. 개인용품` / `🔐 10. 출국 직전` since they shifted at `425b7ee` — re-check any previously checked items in those two sections.
-4. Add booking info for `Casp 74 Apartments` once the confirmation is available.
+4. Add booking info for `Casp 74 Apartments` once the confirmation is available — remember to include `hotelName` and `checkin: "2026-09-03"` so it also appears on the schedule tab automatically.
 5. Confirm the breakfast policy for `Meliá Palma Marina` and update its badge from `조식 미확인`.
 6. Test Schedule and Expense CRUD with the two allowed Google accounts to ensure realtime sync works correctly.
 7. Confirm whether seed schedule items should be added automatically or entered manually in the app.
