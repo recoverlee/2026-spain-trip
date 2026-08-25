@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (hotel review link folded into Alberg booking card; cache v6)
+Last updated: 2026-08-24 (8/29 Mallorca transfer schedule card added; cache v7)
 
 ## Project Overview
 
@@ -18,7 +18,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `22b4834 chore: bump PWA cache version to v6 for hotel review link consolidation`
+- `0f709d7 chore: bump PWA cache version to v7 for 8/29 schedule card`
 
 ⚠️ **Action needed (still open from `8c36e0d`):** the custom checklist item feature added a new Firestore path (`tripData/checklistCustom/items`) and updated `firestore.rules` to allow it, but rules are still not deployed to production (see Firestore Security Rules section). Until `firebase deploy --only firestore:rules` is run, whether add/delete/check on custom items works depends on whatever rules are currently live on the `spain-trip-3006a` project — if production is still on permissive/test-mode rules it will work; if a stricter rule set without this path is live, custom item writes will fail with a permission error. Deploy the rules to be sure.
 
@@ -126,7 +126,7 @@ Current UI:
 - daily accommodation link shown beside dates where a hotel is assigned
 - changeover days display as `숙소1 -> 숙소2`
 - accommodation booking card: for a date that matches an `ACCOMMODATION_BOOKINGS` entry's `checkin` field, the full booking card (breakfast badge, rows, note) renders right under that date's header — moved here from the checklist tab in commit `9458e6d`. Display-only, driven by `ACCOMMODATION_BOOKINGS_BY_CHECKIN`.
-- `SCHEDULE_DAY_NOTES` (client constant, display-only): keyed by `YYYY-MM-DD`, each value is an **array** of reference cards rendered under that date's header, above that date's Firestore-backed items. Not read from or written to Firestore.
+- `SCHEDULE_DAY_NOTES` (client constant, display-only): keyed by `YYYY-MM-DD`, each value is an **array** of reference cards rendered under that date's header, above that date's Firestore-backed items. Not read from or written to Firestore. Currently has entries for `2026-08-28` (2 cards) and `2026-08-29` (1 card, the Mallorca transfer plan).
 - **Booking card position within the day-note cards** (added in commit `6dc7416`): an `ACCOMMODATION_BOOKINGS` entry can set an optional `scheduleOrder` (integer) — the number of `SCHEDULE_DAY_NOTES` cards to render before inserting the booking card among them. Default (no `scheduleOrder`, or `0`) puts the booking card first, before all day notes. `Alberg Centre Esplai` sets `scheduleOrder: 2`, so on `2026-08-28` the order is: 인천공항 출발 계획 → 바르셀로나 공항 이동 → **[예약 카드]** (last, since there are only 2 day notes on this date as of commit `4c05f6c`). When there is no `checkinBooking` for a date, `SCHEDULE_DAY_NOTES` cards just render in their array order as before.
 - **Booking card reference link** (added in commit `4c05f6c`): an `ACCOMMODATION_BOOKINGS` entry can optionally set a `link` field, rendered as a `🔗 참고 링크` link (opens in a new tab) at the bottom of the booking card, below the note. `Alberg Centre Esplai` uses this for its hotel review blog link — previously this lived in its own separate `SCHEDULE_DAY_NOTES` card, which has since been removed in favor of attaching the link directly to the booking card it's about.
 - `+ 일정 추가`
@@ -266,7 +266,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v6` (bumped for the hotel review link consolidation; `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v7` (bumped for the 8/29 Mallorca transfer schedule card; `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -597,7 +597,23 @@ Per user request: removed the separate "Alberg Centre Esplai 호텔 후기 (참�
 - Added a `link` field to the `Alberg Centre Esplai` booking entry: `https://blog.naver.com/eudemonic005/224348941656` (same URL the removed card used).
 - Added `link` rendering to both booking-card code paths: the inline HTML template in `renderSchedule()` (the one actually shown on the schedule tab) and the DOM-based `createBookingCard()` (used for the baggage info card and available if a booking card is ever rendered elsewhere again) — both show a `🔗 참고 링크` link under the note.
 - With the review card removed, `2026-08-28` now has only 2 `SCHEDULE_DAY_NOTES` cards (departure plan, airport transit); `scheduleOrder: 2` on the booking still correctly places it last, right after the transit card — no `scheduleOrder` value change was needed since `2` already meant "after all day notes" once there were only 2.
-- Bumped `sw.js` cache to `spain-trip-pwa-v6`.
+
+### 8/29 Mallorca Transfer Schedule Card
+
+Committed and pushed directly to `main`:
+
+- `2144ebb feat: add 8/29 Mallorca transfer schedule card (Alberg Centre Esplai -> BCN T1)`
+- `0f709d7 chore: bump PWA cache version to v7 for 8/29 schedule card`
+
+Added a new `SCHEDULE_DAY_NOTES["2026-08-29"]` entry (first card of the day, no `checkinBooking` on this date so no `scheduleOrder` interaction), summarizing the user-supplied plan for the Alberg Centre Esplai → BCN Terminal 1 → Mallorca (PMI) transfer:
+
+- Flight: Air Europa BCN → PMI, 08:40 → 09:25, Terminal 1.
+- Recommended hotel departure: `06:10`, called out explicitly per the user's instruction (rather than the 06:00 wake-up time also mentioned in their notes).
+- Taxi transfer estimate: ~8–10 minutes, €20–24, targeting T1 arrival by 06:20–06:30.
+- Airport timeline: check-in/baggage 06:30–06:40, security from 06:40, gate by ~07:30, boarding/departure 08:40.
+- Note covers: taxi recommended over public transit for 3 people + luggage; Air Europa uses T1; despite being a short domestic/Schengen hop, the extra checked baggage justifies the ~06:30 airport-arrival target; and the early departure accounts for this being the morning right after the long-haul 8/28 인천 → 바르셀로나 flight.
+- The official Aena Barcelona-El Prat airport info link mentioned in the user's source material was not included, since no concrete URL was visible in the supplied content — can be added once the user provides the exact link.
+- Bumped `sw.js` cache to `spain-trip-pwa-v7`.
 
 ## Local Verification Results
 
@@ -652,7 +668,8 @@ Latest local verification after adding accommodation booking info:
 - Casp 74 schedule card check: PASS, booking card now renders under `2026-09-03` in the `일정` tab with no code changes beyond adding the data
 - `scheduleOrder` splice logic check: PASS, simulated with `["A","B","C"]` and `scheduleOrder: 2` produces `["A","B","[booking]","C"]`; `2026-08-28` now renders 인천공항 출발 계획 → 바르셀로나 공항 이동 → 예약 카드 → 호텔 후기
 - `scheduleOrder` default/regression check: PASS, dates and bookings without `scheduleOrder` (`Gran Hotel Sóller`, `Meliá Palma Marina`, `Casp 74 Apartments`) still render their booking card before any day notes, unchanged from before this fix
-- service worker cache name check: PASS, `spain-trip-pwa-v6`
+- service worker cache name check: PASS, `spain-trip-pwa-v7`
+- 8/29 schedule card render check: PASS, new card renders under the `2026-08-29` date header with all 10 rows and the note; no `checkinBooking` on this date so `scheduleOrder` logic does not apply
 
 ## Future Work Notes
 
@@ -667,6 +684,7 @@ Recommended next steps:
 7. **Deploy Firestore Rules after review.** They are still not deployed, so production Firestore is not yet protected by them, and the new custom checklist item feature (`tripData/checklistCustom/items`) may not work until this is done. Use `firebase deploy --only firestore:rules` with Firebase CLI access.
 8. Test adding, checking, and deleting a custom checklist item with both allowed accounts in the production app; if it fails with a permission error, that confirms rules need deploying (see item 7).
 9. Test the checklist edit mode toggle, hiding a static item, and restoring it, in the production app with both allowed accounts, and confirm the progress bar total updates correctly when items are hidden.
+10. Get the exact Aena Barcelona-El Prat airport info URL from the user and add it as a `link` on the `2026-08-29` Mallorca transfer schedule card.
 
 Potential future improvements:
 
