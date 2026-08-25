@@ -97,6 +97,11 @@
   .booking-val { font-size:13px; font-weight:700; word-break:break-word; }
   .booking-val.code { font-variant-numeric:tabular-nums; letter-spacing:.03em; }
   .booking-note { margin-top:8px; padding-top:8px; border-top:1px solid #dbe4ff; color:var(--muted); font-size:12px; line-height:1.5; }
+  .transit-ticket { padding:8px 0; border-top:1px solid #dbe4ff; }
+  .transit-ticket:first-child { border-top:0; padding-top:0; }
+  .transit-name { color:var(--accent); font-weight:900; font-size:13px; }
+  .transit-desc { color:var(--muted); font-size:12px; margin-top:2px; line-height:1.5; }
+  .transit-price { font-weight:900; font-size:14px; margin-top:2px; }
   .danger { color:#b45309; font-weight:700; }
   footer { color:var(--muted); text-align:center; margin-top:24px; font-size:13px; }
   /* 로그인 페이지 스타일 */
@@ -479,6 +484,20 @@ const ACCOMMODATION_BOOKINGS = {
   }
 };
 
+/* 체크리스트 섹션 하단에 표시되는 참고 정보 카드 (섹션 제목이 key) */
+const SECTION_INFO_CARDS = {
+  "🗺️ 8. 이동": {
+    title: "스페인 바르셀로나 대중교통 티켓 종류",
+    tickets: [
+      ["T-casual", "1인용 10회 승차권 · 75분 이내 환승 가능", "13유로"],
+      ["T-usual", "1인용 30일 무제한 승차권", "22.80유로"],
+      ["T-familiar", "다인용 30일 동안 8회 승차권 · 75분 이내 환승 가능", "11.50유로"],
+      ["T-grup", "다인용 30일 동안 70회 승차권", "91유로"],
+      ["T-dia", "1인용 24시간 무제한 승차권", "12유로"]
+    ]
+  }
+};
+
 let state = {};
 let checkedBy = {};
 let schedules = [];
@@ -719,6 +738,42 @@ function createBookingCard(booking) {
   return card;
 }
 
+function createTransitCard(info) {
+  const card = document.createElement("div");
+  card.className = "booking-card";
+
+  const head = document.createElement("div");
+  head.className = "booking-head";
+
+  const title = document.createElement("span");
+  title.className = "booking-title";
+  title.textContent = info.title;
+  head.appendChild(title);
+  card.appendChild(head);
+
+  info.tickets.forEach(([name, desc, price]) => {
+    const ticket = document.createElement("div");
+    ticket.className = "transit-ticket";
+
+    const nameEl = document.createElement("div");
+    nameEl.className = "transit-name";
+    nameEl.textContent = name;
+
+    const descEl = document.createElement("div");
+    descEl.className = "transit-desc";
+    descEl.textContent = desc;
+
+    const priceEl = document.createElement("div");
+    priceEl.className = "transit-price";
+    priceEl.textContent = price;
+
+    ticket.append(nameEl, descEl, priceEl);
+    card.appendChild(ticket);
+  });
+
+  return card;
+}
+
 function renderChecklist() {
   appEl.innerHTML = "";
   totalItems = 0;
@@ -790,6 +845,10 @@ function renderChecklist() {
     }
 
     renderItems(section[1], sec);
+
+    const sectionInfo = SECTION_INFO_CARDS[section[0]];
+    if (sectionInfo) sec.appendChild(createTransitCard(sectionInfo));
+
     appEl.appendChild(sec);
   });
 
