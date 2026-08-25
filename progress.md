@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (custom checklist items: add/delete per category)
+Last updated: 2026-08-24 (airport-to-hotel transit card added to 8/28 schedule)
 
 ## Project Overview
 
@@ -18,9 +18,9 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `8c36e0d feat: add per-category custom checklist items (add/delete)`
+- `205868f feat: add airport-to-hotel transit card for 8/28 schedule; support multiple day notes per date`
 
-⚠️ **Action needed:** this commit adds a new Firestore path (`tripData/checklistCustom/items`) and updates `firestore.rules` to allow it, but rules are still not deployed to production (see Firestore Security Rules section). Until `firebase deploy --only firestore:rules` is run, whether add/delete/check on custom items works depends on whatever rules are currently live on the `spain-trip-3006a` project — if production is still on permissive/test-mode rules it will work; if a stricter rule set without this path is live, custom item writes will fail with a permission error. Deploy the rules to be sure.
+⚠️ **Action needed (still open from `8c36e0d`):** the custom checklist item feature added a new Firestore path (`tripData/checklistCustom/items`) and updated `firestore.rules` to allow it, but rules are still not deployed to production (see Firestore Security Rules section). Until `firebase deploy --only firestore:rules` is run, whether add/delete/check on custom items works depends on whatever rules are currently live on the `spain-trip-3006a` project — if production is still on permissive/test-mode rules it will work; if a stricter rule set without this path is live, custom item writes will fail with a permission error. Deploy the rules to be sure.
 
 Current change set: working tree clean, all features committed and pushed directly to `main`
 
@@ -122,7 +122,7 @@ Current UI:
 - date-grouped timeline for `2026-08-28` through `2026-09-08`
 - daily accommodation link shown beside dates where a hotel is assigned
 - changeover days display as `숙소1 -> 숙소2`
-- `SCHEDULE_DAY_NOTES` (client constant, display-only): an optional reference card rendered under a date's header, above that date's Firestore-backed items. Currently used for the `2026-08-28` airport departure plan. Not read from or written to Firestore.
+- `SCHEDULE_DAY_NOTES` (client constant, display-only): keyed by `YYYY-MM-DD`, each value is an **array** of reference cards rendered under that date's header, above that date's Firestore-backed items. Currently used for `2026-08-28`: the airport departure plan and the airport-to-hotel transit card. Not read from or written to Firestore.
 - `+ 일정 추가`
 - add/edit/delete forms
 - realtime Firestore subscription via `onSnapshot`
@@ -467,6 +467,17 @@ Committed and pushed directly to `main`:
 - Updated `firestore.rules` to allow `checklistCustom` alongside `schedule`/`expenses` under the existing `tripData/{section}/items/{itemId}` wildcard rule.
 - All add/edit/delete controls are disabled when logged out, same as the rest of the app.
 
+### Airport-to-Hotel Transit Card (8/28 Schedule)
+
+Committed and pushed directly to `main`:
+
+- `205868f feat: add airport-to-hotel transit card for 8/28 schedule; support multiple day notes per date`
+
+- Refactored `SCHEDULE_DAY_NOTES[date]` from a single card object to an **array** of card objects, so a date can show more than one reference card. `renderSchedule()` now `.map()`s over the array instead of rendering a single object.
+- Added a second card for `2026-08-28`: "바르셀로나 공항 → Alberg Centre Esplai 이동", covering taxi vs. bus options, the PR1/N17 bus routes, the €2.9 per-person cash fare if card payment isn't available, and a note that the N17 route is somewhat faster than PR1.
+- Linked `https://m.blog.naver.com/eudemonic005/224333827362` as the reference link for this card — the same guide already linked from the `바르셀로나 공항 택시/버스 이용법` checklist item, now also reachable from the relevant schedule day.
+- This is a backward-compatible data shape change: any future `SCHEDULE_DAY_NOTES` entry must be an array (`[{...}]`), not a bare object, or it will fail to render.
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -503,6 +514,8 @@ Latest local verification after adding accommodation booking info:
 - Custom checklist item code presence check: PASS, `checklistCustomCollection`, `loadCustomChecklistItems()`, `addCustomChecklistItem()`, `toggleCustomChecklistItem()`, `deleteCustomChecklistItem()` all present
 - Custom checklist item live write test: NOT RUN, to avoid touching production data; also blocked until `firestore.rules` is deployed (see Firestore Security Rules section)
 - `checkAll()`/`uncheckAll()` regression check: PASS, static item loop now uses `totalStaticItems` instead of `totalItems`, so no phantom numeric keys are written beyond the real static item count
+- `SCHEDULE_DAY_NOTES` array refactor regression check: PASS, `2026-08-28` still renders its original departure-plan card plus the new transit card, both using the existing `.booking-card` styling
+- schedule day note isolation check (2nd card): PASS, the new transit card also has no edit/delete controls and does not call `addDoc`/`updateDoc`/`deleteDoc`
 
 ## Future Work Notes
 
