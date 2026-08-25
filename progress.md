@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (BCN-PMI baggage info card added)
+Last updated: 2026-08-24 (8/28 airport departure plan card added to schedule tab)
 
 ## Project Overview
 
@@ -18,7 +18,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `48b951a feat: add BCN-PMI round trip baggage info card to 항공 checklist section`
+- `fbf9bd2 feat: add 8/28 airport departure plan card to schedule tab`
 
 Current change set: working tree clean, all features committed and pushed directly to `main`
 
@@ -120,6 +120,7 @@ Current UI:
 - date-grouped timeline for `2026-08-28` through `2026-09-08`
 - daily accommodation link shown beside dates where a hotel is assigned
 - changeover days display as `숙소1 -> 숙소2`
+- `SCHEDULE_DAY_NOTES` (client constant, display-only): an optional reference card rendered under a date's header, above that date's Firestore-backed items. Currently used for the `2026-08-28` airport departure plan. Not read from or written to Firestore.
 - `+ 일정 추가`
 - add/edit/delete forms
 - realtime Firestore subscription via `onSnapshot`
@@ -395,6 +396,18 @@ Committed and pushed directly to `main`:
 - Entered Air Europa BCN ↔ PMI round-trip baggage rules for 3 passengers (성인 2 + 아동 1): personal item (4kg, 40×30×15cm, ×3), cabin bag (10kg, 55×35×25cm, ×3), checked bag not included in the base Economy Lite fare, and 2 extra checked bags already purchased (23kg, 158cm combined dimensions each, one per direction for 재환) with the owned suitcase size noted as within limits (74×47×31cm = 152cm).
 - This card is display-only, same pattern as `ACCOMMODATION_BOOKINGS` and the transit ticket card; nothing is read from or written to Firestore.
 
+### Schedule Tab Day Note Card (8/28 Airport Departure Plan)
+
+Committed and pushed directly to `main`:
+
+- `fbf9bd2 feat: add 8/28 airport departure plan card to schedule tab`
+
+- Added `SCHEDULE_DAY_NOTES`, a client constant keyed by `YYYY-MM-DD`, for a display-only reference card shown under a date's header in the `일정` tab, above that date's Firestore-backed schedule items.
+- `renderSchedule()` now builds this card as an inline HTML string (reusing the `.booking-card` / `.booking-rows` / `.booking-note` classes already used elsewhere) and inserts it between the date header and the item timeline, when an entry exists for that date.
+- Entered the `2026-08-28` car departure plan from Suwon: 06:30~06:40 departure, 07:50~08:10 parking arrival, 08:10~09:00 terminal/check-in, 09:00~10:00 immigration/duty-free, 10:00~11:00 meal/shopping/gate, 11:50 departure.
+- Noted that Terminal 2 parking bus boarding is easiest from zones A, B, E, F, and that the early 06:30 departure accounts for the 10-night Spain trip's extra baggage (bicycle-related gear).
+- This card is display-only and unrelated to the Firestore-backed `tripData/schedule/items` collection; it does not use `addDoc`/`updateDoc` and cannot be edited from the UI. Future per-date notes can be added the same way by adding a new date key to `SCHEDULE_DAY_NOTES`.
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -411,6 +424,8 @@ Latest local verification after adding accommodation booking info:
 - checklist item link rendering check: PASS, `🔗 참고 링크` renders under the new taxi/bus item and opens in a new tab without toggling its checkbox
 - baggage info card render check: PASS, card renders at the bottom of `✈️ 1. 항공` using the booking-card style with custom `cardTitle`
 - `createBookingCard()` title regression check: PASS, existing `ACCOMMODATION_BOOKINGS` cards still show `예약 정보` (no `cardTitle` set)
+- schedule day note render check: PASS, `2026-08-28` departure plan card renders under the date header, above the Firestore-backed item list, using existing `.booking-card` styling
+- schedule day note isolation check: PASS, `SCHEDULE_DAY_NOTES` card has no edit/delete controls and does not call `addDoc`/`updateDoc`/`deleteDoc`
 - booking key match check: PASS, every `ACCOMMODATION_BOOKINGS` key matches an existing checklist heading
 - booking card render check: PASS, `2` cards render at `430px` and `900px` viewports via headless Chromium
 - payer removal check: PASS, no `payer` or `결제자` reference remains in `index.html`
