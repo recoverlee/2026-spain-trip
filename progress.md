@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (PWA cache v3 for login page)
+Last updated: 2026-08-24 (Meliá Palma Marina parking fee added)
 
 ## Project Overview
 
@@ -323,6 +323,7 @@ Implementation details:
 - Entered complete booking details for `Alberg Centre Esplai` (with payment confirmation), `Gran Hotel Sóller` and `Meliá Palma Marina` from the supplied confirmations.
 - `Casp 74 Apartments` still has no confirmation, so it renders heading and checkboxes only.
 - `Alberg Centre Esplai` breakfast status confirmed as included (조식 포함).
+- `Meliá Palma Marina` parking fee added: €29/night (not included in room rate, pre-booking recommended, height limit 1.90m, key pickup at front desk).
 
 ### GitHub Pages Hosting Documentation
 
