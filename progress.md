@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (page title simplified to "2026 스페인 여행")
+Last updated: 2026-08-24 (custom checklist items: add/delete per category)
 
 ## Project Overview
 
@@ -18,7 +18,9 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `ca3fb38 fix: simplify page title to remove '출국 전 최종 체크리스트' text`
+- `8c36e0d feat: add per-category custom checklist items (add/delete)`
+
+⚠️ **Action needed:** this commit adds a new Firestore path (`tripData/checklistCustom/items`) and updates `firestore.rules` to allow it, but rules are still not deployed to production (see Firestore Security Rules section). Until `firebase deploy --only firestore:rules` is run, whether add/delete/check on custom items works depends on whatever rules are currently live on the `spain-trip-3006a` project — if production is still on permissive/test-mode rules it will work; if a stricter rule set without this path is live, custom item writes will fail with a permission error. Deploy the rules to be sure.
 
 Current change set: working tree clean, all features committed and pushed directly to `main`
 
@@ -158,6 +160,36 @@ Current UI:
   - today expenses
   - category totals
 
+### Custom Checklist Items
+
+Path:
+
+```text
+tripData/checklistCustom/items/{id}
+```
+
+Fields:
+
+- `category`: string, must match one of the static checklist section titles exactly (e.g. `🩹 9. 개인용품`), so the item renders in the right section
+- `text`: item label
+- `checked`: boolean
+- `checkedBy`: display name or `null`
+- `createdAt`: Firestore `serverTimestamp()`
+- `createdBy`: display name
+- `updatedAt`: Firestore `serverTimestamp()`
+- `updatedBy`: display name
+
+Current UI:
+
+- `체크리스트` tab, at the bottom of every category section
+- custom items render after the static items and any info cards for that section, each with a checkbox, a `추가됨` badge, and a `삭제` button
+- an inline `+ 추가` form at the very bottom of each section adds a new item to that category
+- realtime Firestore subscription via `onSnapshot`, same pattern as Schedule/Expenses
+
+This is a separate collection from `trip/checklist` (the static item state) on purpose: static checklist items are identified by a flattened numeric index that must stay stable for existing checkbox data (see the index drift notes above), so they cannot safely support arbitrary insert/delete. Custom items instead get their own Firestore document ID, so they can be freely added and removed without disturbing the static items' indexes.
+
+`전체 완료` / `전체 미완료` (checkAll/uncheckAll) apply to both static and custom items. The progress bar's total (`totalItems`) includes custom items; a separate `totalStaticItems` counter is used internally for the static `state` object so custom items don't pollute its numeric keys.
+
 ## Firestore Security Rules
 
 Rules file:
@@ -179,6 +211,7 @@ Current rules intent:
 - allow `trip/checklist`
 - allow `tripData/schedule/items/{id}`
 - allow `tripData/expenses/items/{id}`
+- allow `tripData/checklistCustom/items/{id}` (added in commit `8c36e0d`, for the new custom checklist item feature)
 - deny all other document paths
 
 Note:
@@ -419,6 +452,21 @@ Committed and pushed directly to `main`:
 - The login page's own `<h1>2026 스페인 여행</h1>` was already this shorter form and was not changed.
 - No functional or data changes; purely a display text update.
 
+### Custom Checklist Items (Add/Delete per Category)
+
+Committed and pushed directly to `main`:
+
+- `8c36e0d feat: add per-category custom checklist items (add/delete)`
+
+- Added a new Firestore collection `tripData/checklistCustom/items`, separate from `trip/checklist` (see Firebase Data Model above for why).
+- `renderChecklist()` now renders, for every section: static items → any `SECTION_INFO_CARDS` / `SECTION_BOOKING_STYLE_CARDS` info cards → custom items for that category → an inline `+ 추가` add-item form.
+- Custom items show a `추가됨` badge and a `삭제` button; deleting asks for confirmation via `confirm()`.
+- Added `loadCustomChecklistItems()` (realtime `onSnapshot` subscription, ordered by `createdAt`), `addCustomChecklistItem()`, `toggleCustomChecklistItem()`, and `deleteCustomChecklistItem()`.
+- Introduced `totalStaticItems` (separate from `totalItems`) so `checkAll()`/`uncheckAll()` only write flattened numeric keys for the static checklist's actual item count; they additionally batch-update all custom items' `checked` field via `Promise.all`.
+- `updateProgress()` now adds checked custom items to the `done` count so the progress bar reflects both static and custom items.
+- Updated `firestore.rules` to allow `checklistCustom` alongside `schedule`/`expenses` under the existing `tripData/{section}/items/{itemId}` wildcard rule.
+- All add/edit/delete controls are disabled when logged out, same as the rest of the app.
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -452,6 +500,9 @@ Latest local verification after adding accommodation booking info:
 - Firestore Rules static review: PASS
 - Firebase CLI rules compile/deploy: NOT RUN, Firebase CLI not installed
 - Live Firestore CRUD write/delete test: NOT RUN, to avoid touching production data during review
+- Custom checklist item code presence check: PASS, `checklistCustomCollection`, `loadCustomChecklistItems()`, `addCustomChecklistItem()`, `toggleCustomChecklistItem()`, `deleteCustomChecklistItem()` all present
+- Custom checklist item live write test: NOT RUN, to avoid touching production data; also blocked until `firestore.rules` is deployed (see Firestore Security Rules section)
+- `checkAll()`/`uncheckAll()` regression check: PASS, static item loop now uses `totalStaticItems` instead of `totalItems`, so no phantom numeric keys are written beyond the real static item count
 
 ## Future Work Notes
 
@@ -464,7 +515,8 @@ Recommended next steps:
 5. Confirm the breakfast policy for `Meliá Palma Marina` and update its badge from `조식 미확인`.
 6. Test Schedule and Expense CRUD with the two allowed Google accounts to ensure realtime sync works correctly.
 7. Confirm whether seed schedule items should be added automatically or entered manually in the app.
-8. **Deploy Firestore Rules after review.** They are still not deployed, so production Firestore is not yet protected by them. Use `firebase deploy --only firestore:rules` with Firebase CLI access.
+8. **Deploy Firestore Rules after review.** They are still not deployed, so production Firestore is not yet protected by them, and the new custom checklist item feature (`tripData/checklistCustom/items`) may not work until this is done. Use `firebase deploy --only firestore:rules` with Firebase CLI access.
+9. Test adding, checking, and deleting a custom checklist item with both allowed accounts in the production app; if it fails with a permission error, that confirms rules need deploying (see item 8).
 
 Potential future improvements:
 
