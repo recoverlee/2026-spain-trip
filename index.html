@@ -454,6 +454,8 @@ const DAILY_ACCOMMODATIONS = {
 
 const ACCOMMODATION_BOOKINGS = {
   "8/28(금)~8/29(토) — Alberg Centre Esplai": {
+    hotelName: "Alberg Centre Esplai",
+    checkin: "2026-08-28",
     breakfast: "included",
     breakfastText: "조식 포함",
     rows: [
@@ -472,6 +474,8 @@ const ACCOMMODATION_BOOKINGS = {
     note: "예약 확정 및 결제 완료됨"
   },
   "8/29(토)~8/31(월) — Gran Hotel Sóller": {
+    hotelName: "Gran Hotel Sóller",
+    checkin: "2026-08-29",
     breakfast: "included",
     breakfastText: "조식 포함 (뷔페식)",
     rows: [
@@ -485,6 +489,8 @@ const ACCOMMODATION_BOOKINGS = {
     ]
   },
   "8/31(월)~9/3(목) — Meliá Palma Marina": {
+    hotelName: "Meliá Palma Marina",
+    checkin: "2026-08-31",
     breakfast: "unknown",
     breakfastText: "조식 미확인",
     rows: [
@@ -500,6 +506,13 @@ const ACCOMMODATION_BOOKINGS = {
     note: "도착 24시간 이내 취소 또는 노쇼 시 1박 요금이 위약금으로 부과됩니다. 주차장은 높이 1.90m 초과 차량 진입 불가, 도착 시 프런트에서 출입 키 수령."
   }
 };
+
+/* 일정 탭에서 체크인 날짜로 예약 카드를 찾기 위한 조회 테이블 (ACCOMMODATION_BOOKINGS로부터 자동 생성) */
+const ACCOMMODATION_BOOKINGS_BY_CHECKIN = Object.values(ACCOMMODATION_BOOKINGS)
+  .reduce((map, booking) => {
+    if (booking.checkin) map[booking.checkin] = booking;
+    return map;
+  }, {});
 
 /* 체크리스트 섹션 하단에 표시되는 참고 정보 카드 (섹션 제목이 key) */
 const SECTION_INFO_CARDS = {
@@ -879,9 +892,6 @@ function renderChecklist() {
             h3.textContent = item[0];
           }
           parent.appendChild(h3);
-
-          const booking = ACCOMMODATION_BOOKINGS[item[0]];
-          if (booking) parent.appendChild(createBookingCard(booking));
 
           renderItems(item[1], parent);
         } else {
@@ -1403,6 +1413,7 @@ function renderSchedule() {
       return `${a.time || "99:99"}${a.title || ""}`.localeCompare(`${b.time || "99:99"}${b.title || ""}`);
     });
     const dayNotes = SCHEDULE_DAY_NOTES[date] || [];
+    const checkinBooking = ACCOMMODATION_BOOKINGS_BY_CHECKIN[date];
     const itemHtml = sorted.length ? sorted.map(item => `
       <div class="timeline-item">
         <div class="timeline-time">${item.time || "종일"}</div>
@@ -1417,10 +1428,25 @@ function renderSchedule() {
           </div>
         </div>
       </div>
-    `).join("") : dayNotes.length ? "" : `<div class="empty">등록된 일정이 없습니다.</div>`;
+    `).join("") : (dayNotes.length || checkinBooking) ? "" : `<div class="empty">등록된 일정이 없습니다.</div>`;
     const accommodation = DAILY_ACCOMMODATIONS[date];
     const accommodationHtml = accommodation ? `
       <a class="timeline-stay" href="${escapeAttribute(accommodation.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(accommodation.name)}</a>
+    ` : "";
+    const bookingCardHtml = checkinBooking ? `
+      <div class="booking-card">
+        <div class="booking-head">
+          <span class="booking-title">${escapeHtml(checkinBooking.hotelName)} 예약 정보</span>
+          ${checkinBooking.breakfastText ? `<span class="booking-badge ${checkinBooking.breakfast === "included" ? "on" : checkinBooking.breakfast === "excluded" ? "off" : "unknown"}">${escapeHtml(checkinBooking.breakfastText)}</span>` : ""}
+        </div>
+        <div class="booking-rows">
+          ${checkinBooking.rows.map(([key, value, isCode]) => `
+            <span class="booking-key">${escapeHtml(key)}</span>
+            <span class="booking-val${isCode ? " code" : ""}">${escapeHtml(value)}</span>
+          `).join("")}
+        </div>
+        ${checkinBooking.note ? `<p class="booking-note">${escapeHtml(checkinBooking.note)}</p>` : ""}
+      </div>
     ` : "";
     const dayNoteHtml = dayNotes.map(dayNote => `
       <div class="booking-card">
@@ -1441,6 +1467,7 @@ function renderSchedule() {
           <span>${formatTripDate(date)}</span>
           ${accommodationHtml}
         </div>
+        ${bookingCardHtml}
         ${dayNoteHtml}
         <div class="timeline-list">${itemHtml}</div>
       </div>
