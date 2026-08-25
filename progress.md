@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (reference link added to 8/28 airport departure plan card)
+Last updated: 2026-08-24 (page title simplified to "2026 스페인 여행")
 
 ## Project Overview
 
@@ -18,7 +18,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `5ff6b9b feat: add reference link to 8/28 airport departure plan card`
+- `ca3fb38 fix: simplify page title to remove '출국 전 최종 체크리스트' text`
 
 Current change set: working tree clean, all features committed and pushed directly to `main`
 
@@ -408,6 +408,16 @@ Committed and pushed directly to `main`:
 - Noted that Terminal 2 parking bus boarding is easiest from zones A, B, E, F, and that the early 06:30 departure accounts for the 10-night Spain trip's extra baggage (bicycle-related gear).
 - This card is display-only and unrelated to the Firestore-backed `tripData/schedule/items` collection; it does not use `addDoc`/`updateDoc` and cannot be edited from the UI. Future per-date notes can be added the same way by adding a new date key to `SCHEDULE_DAY_NOTES`.
 - `SCHEDULE_DAY_NOTES` entries now optionally support a `link` field. When present, a `🔗 참고 링크` link (opens in a new tab, reusing `.item-link`) renders under the note text. Added `https://m.blog.naver.com/taetae-dairy/224350066891` as the reference link for the `2026-08-28` card (commit `5ff6b9b`).
+
+### Page Title Simplification
+
+Committed and pushed directly to `main`:
+
+- `ca3fb38 fix: simplify page title to remove '출국 전 최종 체크리스트' text`
+
+- Changed the browser `<title>` and the header `<h1>` from `🇪🇸 2026 스페인 여행 출국 전 최종 체크리스트` to `🇪🇸 2026 스페인 여행`.
+- The login page's own `<h1>2026 스페인 여행</h1>` was already this shorter form and was not changed.
+- No functional or data changes; purely a display text update.
 
 ## Local Verification Results
 
