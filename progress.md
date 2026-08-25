@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (Alberg booking details updated)
+Last updated: 2026-08-24 (PWA cache v3 for login page)
 
 ## Project Overview
 
@@ -198,7 +198,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v2`
+- current cache name is `spain-trip-pwa-v3` (bumped for login page + booking updates)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -365,7 +365,7 @@ Latest local verification after adding accommodation booking info:
 - payer removal check: PASS, no `payer` or `결제자` reference remains in `index.html`
 - schedule accommodation link check: PASS, daily accommodation mapping is present for hotel nights
 - accommodation range fix check: PASS, `Colon Hotel Barcelona` is removed and handoff days are mapped
-- service worker cache name check: PASS, `spain-trip-pwa-v2`
+- service worker cache name check: PASS, `spain-trip-pwa-v3`
 - Firebase init code presence: PASS
 - Google Auth flow code presence: PASS
 - checklist Firestore sync code presence: PASS
