@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (CASP74 Apartments renamed, city tax detail added)
+Last updated: 2026-08-24 (booking card position fixed on 8/28 schedule; cache v5)
 
 ## Project Overview
 
@@ -18,7 +18,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `c42fc1a fix: rename CASP74 아파트 to CASP74 Apartments, add city tax detail`
+- `5cc10ee chore: bump PWA cache version to v5 for booking card position fix`
 
 ⚠️ **Action needed (still open from `8c36e0d`):** the custom checklist item feature added a new Firestore path (`tripData/checklistCustom/items`) and updated `firestore.rules` to allow it, but rules are still not deployed to production (see Firestore Security Rules section). Until `firebase deploy --only firestore:rules` is run, whether add/delete/check on custom items works depends on whatever rules are currently live on the `spain-trip-3006a` project — if production is still on permissive/test-mode rules it will work; if a stricter rule set without this path is live, custom item writes will fail with a permission error. Deploy the rules to be sure.
 
@@ -126,7 +126,8 @@ Current UI:
 - daily accommodation link shown beside dates where a hotel is assigned
 - changeover days display as `숙소1 -> 숙소2`
 - accommodation booking card: for a date that matches an `ACCOMMODATION_BOOKINGS` entry's `checkin` field, the full booking card (breakfast badge, rows, note) renders right under that date's header — moved here from the checklist tab in commit `9458e6d`. Display-only, driven by `ACCOMMODATION_BOOKINGS_BY_CHECKIN`.
-- `SCHEDULE_DAY_NOTES` (client constant, display-only): keyed by `YYYY-MM-DD`, each value is an **array** of reference cards rendered under the booking card (if any), above that date's Firestore-backed items. Currently used for `2026-08-28`: the airport departure plan, the airport-to-hotel transit card, and the hotel review link. Not read from or written to Firestore.
+- `SCHEDULE_DAY_NOTES` (client constant, display-only): keyed by `YYYY-MM-DD`, each value is an **array** of reference cards rendered under that date's header, above that date's Firestore-backed items. Not read from or written to Firestore.
+- **Booking card position within the day-note cards** (added in commit `6dc7416`): an `ACCOMMODATION_BOOKINGS` entry can set an optional `scheduleOrder` (integer) — the number of `SCHEDULE_DAY_NOTES` cards to render before inserting the booking card among them. Default (no `scheduleOrder`, or `0`) puts the booking card first, before all day notes. `Alberg Centre Esplai` sets `scheduleOrder: 2`, so on `2026-08-28` the order is: 인천공항 출발 계획 → 바르셀로나 공항 이동 → **[예약 카드]** → 호텔 후기. When there is no `checkinBooking` for a date, `SCHEDULE_DAY_NOTES` cards just render in their array order as before.
 - `+ 일정 추가`
 - add/edit/delete forms
 - realtime Firestore subscription via `onSnapshot`
@@ -264,7 +265,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v4` (bumped again to force-refresh the schedule tab's booking card ordering)
+- current cache name is `spain-trip-pwa-v5` (bumped for the actual schedule tab booking card position fix; `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -569,6 +570,20 @@ Committed and pushed directly to `main`:
 - Added a `시티 택스` row: Barcelona city tax is `€6.88` per adult per night, **adults only** (children excluded) — roughly `€55.04` total for 2 adults × 4 nights, paid locally in cash at check-out.
 - Removed the earlier generic `€0.65~2.5` city tax range from the note field (that figure came from a general Spain-wide terms screenshot); the specific `€6.88` figure confirmed for this property supersedes it.
 
+### Booking Card Position Fix (Between Transit and Hotel-Review Notes on 8/28)
+
+Committed and pushed directly to `main`:
+
+- `6dc7416 fix: place Alberg Centre Esplai booking card between the transit and hotel-review notes on 8/28`
+- `5cc10ee chore: bump PWA cache version to v5 for booking card position fix`
+
+Corrects a misread of an earlier request. The user asked for the `Alberg Centre Esplai` booking card to sit **between** the "바르셀로나 공항 → Alberg Centre Esplai 이동" and "Alberg Centre Esplai 호텔 후기 (참고용)" day-note cards on `2026-08-28`. The prior response (which only bumped the PWA cache to `v4`, no code change) instead read "위에 오도록" as "above every card on the date" and concluded the existing order (booking card first, before all day notes — including the airport departure plan card) already satisfied the request. It didn't; the user reported the position still hadn't changed as intended.
+
+- Added an optional `scheduleOrder` field to `ACCOMMODATION_BOOKINGS` entries: the count of `SCHEDULE_DAY_NOTES` cards to render before the booking card is spliced in among them. Undefined/`0` (all other bookings) keeps the previous default: booking card first, before all day notes.
+- Set `scheduleOrder: 2` on `Alberg Centre Esplai` only, so `2026-08-28` now renders: 인천공항 출발 계획 → 바르셀로나 공항 이동 → **[예약 카드]** → 호텔 후기.
+- `renderSchedule()` now builds `dayNoteCards` as an array of individual card HTML strings (rather than one joined string) so the booking card can be `.splice()`-inserted at the right index; the final combined markup is still a single joined string appended after the date header.
+- Bumped `sw.js` cache to `spain-trip-pwa-v5` since this is a visible layout change on an already-cached page.
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -592,8 +607,7 @@ Latest local verification after adding accommodation booking info:
 - payer removal check: PASS, no `payer` or `결제자` reference remains in `index.html`
 - schedule accommodation link check: PASS, daily accommodation mapping is present for hotel nights
 - accommodation range fix check: PASS, `Colon Hotel Barcelona` is removed and handoff days are mapped
-- service worker cache name check: PASS, `spain-trip-pwa-v4`
-- schedule tab card order check: PASS, `renderSchedule()` already places `bookingCardHtml` before `dayNoteHtml` in the template, so the check-in booking card renders above all `SCHEDULE_DAY_NOTES` cards (including the hotel review card) for a date with both — no ordering change was needed, cache was bumped in case a stale service worker was showing an older layout
+- schedule tab card order check (superseded, see below): the earlier fix bumped the cache assuming `bookingCardHtml` rendering before all `dayNoteHtml` cards already matched the request; this was a misreading — the user wanted the booking card **between** two specific day-note cards, not merely "above" the last one. Corrected in commit `6dc7416`, see the new subsection below.
 - Firebase init code presence: PASS
 - Google Auth flow code presence: PASS
 - checklist Firestore sync code presence: PASS
@@ -619,6 +633,9 @@ Latest local verification after adding accommodation booking info:
 - `ACCOMMODATION_BOOKINGS_BY_CHECKIN` build check: PASS, lookup now has 4 entries (`2026-08-28`, `2026-08-29`, `2026-08-31`, `2026-09-03`), one per confirmed booking
 - booking key match check (Casp 74): PASS, `9/3(목)~9/7(월) — Casp 74 Apartments` key matches the existing checklist heading exactly
 - Casp 74 schedule card check: PASS, booking card now renders under `2026-09-03` in the `일정` tab with no code changes beyond adding the data
+- `scheduleOrder` splice logic check: PASS, simulated with `["A","B","C"]` and `scheduleOrder: 2` produces `["A","B","[booking]","C"]`; `2026-08-28` now renders 인천공항 출발 계획 → 바르셀로나 공항 이동 → 예약 카드 → 호텔 후기
+- `scheduleOrder` default/regression check: PASS, dates and bookings without `scheduleOrder` (`Gran Hotel Sóller`, `Meliá Palma Marina`, `Casp 74 Apartments`) still render their booking card before any day notes, unchanged from before this fix
+- service worker cache name check: PASS, `spain-trip-pwa-v5`
 
 ## Future Work Notes
 
