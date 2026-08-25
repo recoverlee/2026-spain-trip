@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (Meliá Palma Marina parking fee added)
+Last updated: 2026-08-24 (Barcelona transit ticket info added)
 
 ## Project Overview
 
@@ -347,6 +347,18 @@ Implemented a dedicated login page that is shown before authentication. Key chan
 - Loading state displayed during login process
 - Gradient background and styled login card for better UX
 - Repository remains public; personal information is now protected by authentication, not repository privacy
+
+### Barcelona Public Transit Ticket Info
+
+Committed and pushed:
+
+- `3094b04 feat: add Barcelona public transit ticket info card to 이동 checklist section`
+
+- Added `SECTION_INFO_CARDS`, a generic map keyed by checklist section title (e.g. `🗺️ 8. 이동`) for reference-only info cards shown at the bottom of a checklist section.
+- Added `createTransitCard()` to render a reusable ticket list card (name, description, price per row).
+- `renderChecklist()` now appends the matching section info card after a section's items, if one exists in `SECTION_INFO_CARDS`.
+- Entered Barcelona transit passes: T-casual (€13), T-usual (€22.80), T-familiar (€11.50), T-grup (€91), T-dia (€12), with ride counts, validity, and transfer window for each.
+- This card is display-only, same pattern as `ACCOMMODATION_BOOKINGS`; nothing is read from or written to Firestore.
 
 ## Local Verification Results
 
