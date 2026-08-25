@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (Meliá Palma Marina breakfast confirmed as included)
+Last updated: 2026-08-24 (CASP74 Apartments renamed, city tax detail added)
 
 ## Project Overview
 
@@ -18,7 +18,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `a37482c fix: confirm Meliá Palma Marina breakfast is included, add payment breakdown`
+- `c42fc1a fix: rename CASP74 아파트 to CASP74 Apartments, add city tax detail`
 
 ⚠️ **Action needed (still open from `8c36e0d`):** the custom checklist item feature added a new Firestore path (`tripData/checklistCustom/items`) and updated `firestore.rules` to allow it, but rules are still not deployed to production (see Firestore Security Rules section). Until `firebase deploy --only firestore:rules` is run, whether add/delete/check on custom items works depends on whatever rules are currently live on the `spain-trip-3006a` project — if production is still on permissive/test-mode rules it will work; if a stricter rule set without this path is live, custom item writes will fail with a permission error. Deploy the rules to be sure.
 
@@ -542,9 +542,9 @@ Committed and pushed directly to `main`:
 - `0d08aca feat: add Casp 74 Apartments booking confirmation`
 
 - Added the `9/3(목)~9/7(월) — Casp 74 Apartments` entry to `ACCOMMODATION_BOOKINGS`, matching the existing checklist heading key exactly.
-- Fields: `hotelName: "CASP74 아파트"`, `checkin: "2026-09-03"`, reservation number `260313304620`, supplier reference `9091200694940`, stay `2026-09-03 → 2026-09-07 (4박)`, room type (아파트, 침실 1개), occupancy (성인 2명, 아동 1명 11세), price `₩1,724,556`, guest name, contact, and address.
+- Fields: `hotelName: "CASP74 Apartments"` (renamed from `CASP74 아파트` in commit `c42fc1a`), `checkin: "2026-09-03"`, reservation number `260313304620`, supplier reference `9091200694940`, stay `2026-09-03 → 2026-09-07 (4박)`, room type (아파트, 침실 1개), occupancy (성인 2명, 아동 1명 11세), price `₩1,724,556`, guest name, contact, and address.
 - Breakfast marked `excluded` (조식 미포함) — the only one of the 4 bookings without breakfast.
-- Note field covers: free cancellation deadline (2026-08-25 18:00, already passed as of this update — no longer actionable, informational only), voucher-at-check-in requirement, Spain City Tax paid locally in cash (not included in the room rate), and the self-parking fee (€28/day) whose payment status is unconfirmed.
+- Note field covers: free cancellation deadline (2026-08-25 18:00, already passed as of this update — no longer actionable, informational only), voucher-at-check-in requirement, and the self-parking fee (€28/day) whose payment status is unconfirmed.
 - This is the 4th and last of the trip's accommodation bookings — all stays (`Alberg Centre Esplai`, `Gran Hotel Sóller`, `Meliá Palma Marina`, `Casp 74 Apartments`) are now fully confirmed and entered.
 - No rendering code changes were needed: because of the `ACCOMMODATION_BOOKINGS_BY_CHECKIN` lookup added in commit `9458e6d`, this booking automatically appears on the `일정` tab under `2026-09-03` (Wed 9/3) as soon as the data was added.
 
@@ -558,6 +558,16 @@ Committed and pushed directly to `main`:
 - Added a `룸타입` row: `Classic Room (Flexible Meliárewards)`.
 - Expanded the `요금` row from a flat total to a breakdown: room `€667.85` + child (2–11) breakfast `€139.65` = total `€807.50`, with 10% national tax included in that total.
 - This was the last of the 4 confirmed bookings with an unresolved breakfast status; all 4 accommodation cards now have a definitive breakfast badge (3 `included`, 1 `excluded` for Casp 74 Apartments).
+
+### CASP74 Apartments Rename and City Tax Detail
+
+Committed and pushed directly to `main`:
+
+- `c42fc1a fix: rename CASP74 아파트 to CASP74 Apartments, add city tax detail`
+
+- Renamed `hotelName` from `CASP74 아파트` to `CASP74 Apartments` (matches the official listing name). This also updates the schedule tab's booking card title (`"${hotelName} 예약 정보"`), which is built from `hotelName` automatically — no separate title field to update.
+- Added a `시티 택스` row: Barcelona city tax is `€6.88` per adult per night, **adults only** (children excluded) — roughly `€55.04` total for 2 adults × 4 nights, paid locally in cash at check-out.
+- Removed the earlier generic `€0.65~2.5` city tax range from the note field (that figure came from a general Spain-wide terms screenshot); the specific `€6.88` figure confirmed for this property supersedes it.
 
 ## Local Verification Results
 
