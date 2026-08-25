@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (Record Go rental car card added to 8/29 schedule; cache v8)
+Last updated: 2026-08-24 (Gran Hotel Sóller card reordered on 8/29 for chronological order; cache v9)
 
 ## Project Overview
 
@@ -18,7 +18,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `75f4e72 chore: bump PWA cache version to v8 for rental car schedule card`
+- `0865cd9 chore: bump PWA cache version to v9 for 8/29 card order fix`
 
 ⚠️ **Action needed (still open from `8c36e0d`):** the custom checklist item feature added a new Firestore path (`tripData/checklistCustom/items`) and updated `firestore.rules` to allow it, but rules are still not deployed to production (see Firestore Security Rules section). Until `firebase deploy --only firestore:rules` is run, whether add/delete/check on custom items works depends on whatever rules are currently live on the `spain-trip-3006a` project — if production is still on permissive/test-mode rules it will work; if a stricter rule set without this path is live, custom item writes will fail with a permission error. Deploy the rules to be sure.
 
@@ -127,7 +127,9 @@ Current UI:
 - changeover days display as `숙소1 -> 숙소2`
 - accommodation booking card: for a date that matches an `ACCOMMODATION_BOOKINGS` entry's `checkin` field, the full booking card (breakfast badge, rows, note) renders right under that date's header — moved here from the checklist tab in commit `9458e6d`. Display-only, driven by `ACCOMMODATION_BOOKINGS_BY_CHECKIN`.
 - `SCHEDULE_DAY_NOTES` (client constant, display-only): keyed by `YYYY-MM-DD`, each value is an **array** of reference cards rendered under that date's header, above that date's Firestore-backed items. Not read from or written to Firestore. Currently has entries for `2026-08-28` (2 cards) and `2026-08-29` (2 cards: the Mallorca transfer plan, then the Record Go rental car reservation + pickup guide).
-- **Booking card position within the day-note cards** (added in commit `6dc7416`): an `ACCOMMODATION_BOOKINGS` entry can set an optional `scheduleOrder` (integer) — the number of `SCHEDULE_DAY_NOTES` cards to render before inserting the booking card among them. Default (no `scheduleOrder`, or `0`) puts the booking card first, before all day notes. `Alberg Centre Esplai` sets `scheduleOrder: 2`, so on `2026-08-28` the order is: 인천공항 출발 계획 → 바르셀로나 공항 이동 → **[예약 카드]** (last, since there are only 2 day notes on this date as of commit `4c05f6c`). When there is no `checkinBooking` for a date, `SCHEDULE_DAY_NOTES` cards just render in their array order as before.
+- **Booking card position within the day-note cards** (added in commit `6dc7416`): an `ACCOMMODATION_BOOKINGS` entry can set an optional `scheduleOrder` (integer) — the number of `SCHEDULE_DAY_NOTES` cards to render before inserting the booking card among them. Default (no `scheduleOrder`, or `0`) puts the booking card first, before all day notes. When there is no `checkinBooking` for a date, `SCHEDULE_DAY_NOTES` cards just render in their array order as before.
+  - `Alberg Centre Esplai` sets `scheduleOrder: 2`, so on `2026-08-28` the order is: 인천공항 출발 계획 → 바르셀로나 공항 이동 → **[예약 카드]** (last, since there are only 2 day notes on this date).
+  - `Gran Hotel Sóller` sets `scheduleOrder: 2` (added in commit `2dc355e`), so on `2026-08-29` the order is: 마요르카 이동 → Record Go 렌터카 → **[예약 카드]** (last, matching the day's actual timeline: airport transfer → rental car pickup → arrival at the hotel).
 - **Booking card reference link** (added in commit `4c05f6c`): an `ACCOMMODATION_BOOKINGS` entry can optionally set a `link` field, rendered as a `🔗 참고 링크` link (opens in a new tab) at the bottom of the booking card, below the note. `Alberg Centre Esplai` uses this for its hotel review blog link — previously this lived in its own separate `SCHEDULE_DAY_NOTES` card, which has since been removed in favor of attaching the link directly to the booking card it's about.
 - `+ 일정 추가`
 - add/edit/delete forms
@@ -266,7 +268,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v8` (bumped for the Record Go rental car schedule card; `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v9` (bumped for the 8/29 card chronological reorder; `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -630,6 +632,18 @@ Added a second `SCHEDULE_DAY_NOTES["2026-08-29"]` card (after the Mallorca trans
 - This complements, rather than duplicates, the existing checklist section `🚗 3. 마요르카 렌터카` (`index.html` line ~684), which has simple checkbox reminders (예약 확인, 서류 준비, 사진 촬영 등) without the reservation number, pricing, or step-by-step guide — the two are intentionally different: checklist items are actionable checkboxes, this schedule card is reference detail tied to the pickup date.
 - Bumped `sw.js` cache to `spain-trip-pwa-v8`.
 
+### Gran Hotel Sóller Card Reordered for Chronological Order (8/29)
+
+Committed and pushed directly to `main`:
+
+- `2dc355e fix: move Gran Hotel Sóller booking card after transfer and rental car cards on 8/29 for chronological order`
+- `0865cd9 chore: bump PWA cache version to v9 for 8/29 card order fix`
+
+The `Gran Hotel Sóller` booking (check-in `2026-08-29`) had no `scheduleOrder`, so it defaulted to `0` and rendered **before** both `SCHEDULE_DAY_NOTES` cards for that date — ahead of the 마요르카 이동 and 렌터카 수령 cards, even though checking into the hotel happens after both of those in real life. User asked for the cards to read in chronological order.
+
+- Set `scheduleOrder: 2` on `Gran Hotel Sóller`, so `2026-08-29` now renders: 마요르카 이동 (Alberg Centre Esplai → BCN T1) → Record Go 렌터카 수령 → **[Gran Hotel Sóller 예약 카드]**, matching the day's actual sequence of events.
+- Bumped `sw.js` cache to `spain-trip-pwa-v9`.
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -683,7 +697,8 @@ Latest local verification after adding accommodation booking info:
 - Casp 74 schedule card check: PASS, booking card now renders under `2026-09-03` in the `일정` tab with no code changes beyond adding the data
 - `scheduleOrder` splice logic check: PASS, simulated with `["A","B","C"]` and `scheduleOrder: 2` produces `["A","B","[booking]","C"]`; `2026-08-28` now renders 인천공항 출발 계획 → 바르셀로나 공항 이동 → 예약 카드 → 호텔 후기
 - `scheduleOrder` default/regression check: PASS, dates and bookings without `scheduleOrder` (`Gran Hotel Sóller`, `Meliá Palma Marina`, `Casp 74 Apartments`) still render their booking card before any day notes, unchanged from before this fix
-- service worker cache name check: PASS, `spain-trip-pwa-v8`
+- service worker cache name check: PASS, `spain-trip-pwa-v9`
+- 8/29 card order check: PASS, `Gran Hotel Sóller` booking card now renders after both day-note cards (마요르카 이동, 렌터카 수령), matching the day's chronological order
 - rental car schedule card render check: PASS, second `2026-08-29` card renders reservation rows (with `code`-styled reservation number), the 6-step pickup note, and the reference link
 - 8/29 schedule card render check: PASS, new card renders under the `2026-08-29` date header with all 10 rows and the note; no `checkinBooking` on this date so `scheduleOrder` logic does not apply
 
