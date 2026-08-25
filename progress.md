@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (checklist edit mode: hide/restore static items, gated delete/add controls)
+Last updated: 2026-08-24 (breakfast hours, hotel review link, empty-schedule message fix)
 
 ## Project Overview
 
@@ -18,7 +18,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `6f6575f feat: add edit mode to hide/restore static items and manage custom items`
+- `5e7baf8 feat: add breakfast hours and hotel review link; fix empty-schedule message when day notes exist`
 
 ⚠️ **Action needed (still open from `8c36e0d`):** the custom checklist item feature added a new Firestore path (`tripData/checklistCustom/items`) and updated `firestore.rules` to allow it, but rules are still not deployed to production (see Firestore Security Rules section). Until `firebase deploy --only firestore:rules` is run, whether add/delete/check on custom items works depends on whatever rules are currently live on the `spain-trip-3006a` project — if production is still on permissive/test-mode rules it will work; if a stricter rule set without this path is live, custom item writes will fail with a permission error. Deploy the rules to be sure.
 
@@ -510,6 +510,16 @@ Committed and pushed directly to `main`:
 - Added `updateEditModeBtn()` to sync the button's label/active style with `editMode`; wired into `setDataControlsEnabled()` (turns edit mode off automatically when logged out) and `clearSharedDataViews()`.
 - Introduced `totalStaticSlots` (always counts every static leaf item, hidden or not) separately from `totalStaticItems`/`totalItems` (visible-only, drives the progress bar), and fixed `checkAll()` to loop over `totalStaticSlots` while skipping `hiddenKeys` — the previous `totalStaticItems`-bounded loop would have checked the wrong keys once any item was hidden, since hiding shrinks the visible count without changing which numeric keys are in use.
 
+### Breakfast Hours, Hotel Review Link, Empty-Schedule Message Fix
+
+Committed and pushed directly to `main`:
+
+- `5e7baf8 feat: add breakfast hours and hotel review link; fix empty-schedule message when day notes exist`
+
+- Added a `조식 시간: 07:00 ~ 10:00` row to the `Alberg Centre Esplai` entry in `ACCOMMODATION_BOOKINGS`.
+- Added a third `SCHEDULE_DAY_NOTES` card for `2026-08-28`, placed after the airport-to-hotel transit card: "Alberg Centre Esplai 호텔 후기 (참고용)", linking to `https://blog.naver.com/eudemonic005/224348941656`. This card has an empty `rows` array (note + link only), confirming `createBookingCard`-style rendering handles a card with no key/value rows.
+- Fixed `renderSchedule()`: a date with no Firestore-backed schedule items but at least one `SCHEDULE_DAY_NOTES` card no longer shows the `등록된 일정이 없습니다` empty-state message, since it read as contradictory next to real reference content on the same date (e.g. `2026-08-28`, which has three day-note cards but zero Firestore schedule items). The empty message still shows for a date with neither Firestore items nor day notes.
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -552,6 +562,8 @@ Latest local verification after adding accommodation booking info:
 - edit mode toggle check: PASS, clicking `editModeBtn` flips `editMode`, re-renders, and shows the controls; clicking again hides them
 - static item hide/restore check: PASS, hiding an item removes it from the default view and totals; restoring brings it back with its original `state`/`checkedBy` intact
 - `checkAll()` with a hidden item check: PASS, after fixing the `totalStaticSlots` bug, `checkAll()` checks every non-hidden static item by its correct key and does not touch the hidden item's key
+- empty `rows` day-note card render check: PASS, the hotel review card (no rows) renders its title/note/link without errors
+- empty-schedule message check: PASS, `2026-08-28` (3 day-note cards, 0 Firestore items) no longer shows `등록된 일정이 없습니다`; a date with neither still shows it
 
 ## Future Work Notes
 
