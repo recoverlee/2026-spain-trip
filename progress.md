@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (airport-to-hotel transit card added to 8/28 schedule)
+Last updated: 2026-08-24 (checklist edit mode: hide/restore static items, gated delete/add controls)
 
 ## Project Overview
 
@@ -18,7 +18,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `205868f feat: add airport-to-hotel transit card for 8/28 schedule; support multiple day notes per date`
+- `6f6575f feat: add edit mode to hide/restore static items and manage custom items`
 
 ⚠️ **Action needed (still open from `8c36e0d`):** the custom checklist item feature added a new Firestore path (`tripData/checklistCustom/items`) and updated `firestore.rules` to allow it, but rules are still not deployed to production (see Firestore Security Rules section). Until `firebase deploy --only firestore:rules` is run, whether add/delete/check on custom items works depends on whatever rules are currently live on the `spain-trip-3006a` project — if production is still on permissive/test-mode rules it will work; if a stricter rule set without this path is live, custom item writes will fail with a permission error. Deploy the rules to be sure.
 
@@ -60,6 +60,7 @@ Document fields:
 
 - `state`: object keyed by checklist item index
 - `checkedBy`: object keyed by checklist item index, value is `재환` or `혜리`
+- `hiddenKeys`: object keyed by checklist item index, value `true` for a static item the user has hidden (soft-delete; see "Static item hide/restore" below)
 - `updatedAt`: Firestore `serverTimestamp()`
 - `updatedBy`: display name
 
@@ -182,13 +183,30 @@ Fields:
 Current UI:
 
 - `체크리스트` tab, at the bottom of every category section
-- custom items render after the static items and any info cards for that section, each with a checkbox, a `추가됨` badge, and a `삭제` button
-- an inline `+ 추가` form at the very bottom of each section adds a new item to that category
+- custom items render after the static items and any info cards for that section, each with a checkbox and a `추가됨` badge
+- a `삭제` button on each custom item, and an inline `+ 추가` form at the bottom of each section — both **only visible while edit mode is on** (see "Edit mode" below)
 - realtime Firestore subscription via `onSnapshot`, same pattern as Schedule/Expenses
 
 This is a separate collection from `trip/checklist` (the static item state) on purpose: static checklist items are identified by a flattened numeric index that must stay stable for existing checkbox data (see the index drift notes above), so they cannot safely support arbitrary insert/delete. Custom items instead get their own Firestore document ID, so they can be freely added and removed without disturbing the static items' indexes.
 
-`전체 완료` / `전체 미완료` (checkAll/uncheckAll) apply to both static and custom items. The progress bar's total (`totalItems`) includes custom items; a separate `totalStaticItems` counter is used internally for the static `state` object so custom items don't pollute its numeric keys.
+`전체 완료` / `전체 미완료` (checkAll/uncheckAll) apply to both static (non-hidden) and custom items.
+
+### Edit Mode and Static Item Hide/Restore
+
+The checklist tab has an `✏️ 항목 편집` / `✅ 편집 완료` toggle button (`editModeBtn`) next to `전체 완료`/`전체 미완료`. It is off by default so delete/hide/add controls don't clutter the normal view; toggling it on reveals them for every item in every section, and toggling it off (or logging out) hides them again.
+
+Static (built-in) checklist items cannot be truly deleted without corrupting other items' flattened indexes (see the index drift notes above), so edit mode instead offers a **숨기기 (hide) / 복원 (restore)** toggle per static item:
+
+- In edit mode, every static item gets a `숨기기` button. Clicking it sets `hiddenKeys[key] = true` on `trip/checklist` (merged write) and re-renders.
+- A hidden item is skipped entirely (not rendered, not counted toward `totalItems`) whenever edit mode is off — it looks deleted to a normal user.
+- While edit mode is on, hidden items are shown again but styled distinctly (dimmed, strikethrough text, checkbox disabled) with a `복원` button instead of `숨기기`, so a hide can be undone.
+- Hiding/restoring never changes the flattened index (`key`) of any item, so no other item's `state`/`checkedBy` is ever affected.
+
+Implementation notes:
+
+- `totalStaticSlots` counts every static leaf item regardless of hidden state (i.e. the true flattened count, currently `119`); `totalStaticItems`/`totalItems` count only currently-visible (non-hidden) items and drive the progress bar.
+- `checkAll()` iterates `0..totalStaticSlots-1` and skips any key present in `hiddenKeys`, so hidden items are never force-checked and the presence of hidden items earlier in the list no longer shifts which keys get checked.
+- `uncheckAll()` is unaffected (it clears `state`/`checkedBy` to `{}` entirely).
 
 ## Firestore Security Rules
 
@@ -478,6 +496,20 @@ Committed and pushed directly to `main`:
 - Linked `https://m.blog.naver.com/eudemonic005/224333827362` as the reference link for this card — the same guide already linked from the `바르셀로나 공항 택시/버스 이용법` checklist item, now also reachable from the relevant schedule day.
 - This is a backward-compatible data shape change: any future `SCHEDULE_DAY_NOTES` entry must be an array (`[{...}]`), not a bare object, or it will fail to render.
 
+### Checklist Edit Mode (Hide/Restore Static Items, Gated Delete/Add)
+
+Committed and pushed directly to `main`:
+
+- `6f6575f feat: add edit mode to hide/restore static items and manage custom items`
+
+- Added an `editModeBtn` toggle (`✏️ 항목 편집` / `✅ 편집 완료`) to the checklist tab's action row, alongside `전체 완료`/`전체 미완료`. Off by default.
+- When edit mode is off (the default), no delete/hide/restore/add-item controls render anywhere in the checklist — addressing user feedback that a permanently visible delete button was distracting.
+- When edit mode is on: every static item gets a `숨기기` button, every custom item gets its `삭제` button back, and every section's `+ 추가` form appears.
+- Added `trip/checklist.hiddenKeys` (object keyed by flattened index, value `true`) as a soft-delete mechanism for static items — hiding an item never removes it from the `data` array or changes any index, so it cannot corrupt other items' stored `state`/`checkedBy`, unlike a real delete would. See the Firebase Data Model section above for the full behavior.
+- Added `setStaticItemHidden(key, hidden)` to toggle `hiddenKeys` with a merged `setDoc`.
+- Added `updateEditModeBtn()` to sync the button's label/active style with `editMode`; wired into `setDataControlsEnabled()` (turns edit mode off automatically when logged out) and `clearSharedDataViews()`.
+- Introduced `totalStaticSlots` (always counts every static leaf item, hidden or not) separately from `totalStaticItems`/`totalItems` (visible-only, drives the progress bar), and fixed `checkAll()` to loop over `totalStaticSlots` while skipping `hiddenKeys` — the previous `totalStaticItems`-bounded loop would have checked the wrong keys once any item was hidden, since hiding shrinks the visible count without changing which numeric keys are in use.
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -516,6 +548,10 @@ Latest local verification after adding accommodation booking info:
 - `checkAll()`/`uncheckAll()` regression check: PASS, static item loop now uses `totalStaticItems` instead of `totalItems`, so no phantom numeric keys are written beyond the real static item count
 - `SCHEDULE_DAY_NOTES` array refactor regression check: PASS, `2026-08-28` still renders its original departure-plan card plus the new transit card, both using the existing `.booking-card` styling
 - schedule day note isolation check (2nd card): PASS, the new transit card also has no edit/delete controls and does not call `addDoc`/`updateDoc`/`deleteDoc`
+- edit mode default-hidden check: PASS, no `삭제`/`숨기기`/`복원`/`+ 추가` controls render anywhere in the checklist tab when `editMode` is `false`
+- edit mode toggle check: PASS, clicking `editModeBtn` flips `editMode`, re-renders, and shows the controls; clicking again hides them
+- static item hide/restore check: PASS, hiding an item removes it from the default view and totals; restoring brings it back with its original `state`/`checkedBy` intact
+- `checkAll()` with a hidden item check: PASS, after fixing the `totalStaticSlots` bug, `checkAll()` checks every non-hidden static item by its correct key and does not touch the hidden item's key
 
 ## Future Work Notes
 
@@ -530,6 +566,7 @@ Recommended next steps:
 7. Confirm whether seed schedule items should be added automatically or entered manually in the app.
 8. **Deploy Firestore Rules after review.** They are still not deployed, so production Firestore is not yet protected by them, and the new custom checklist item feature (`tripData/checklistCustom/items`) may not work until this is done. Use `firebase deploy --only firestore:rules` with Firebase CLI access.
 9. Test adding, checking, and deleting a custom checklist item with both allowed accounts in the production app; if it fails with a permission error, that confirms rules need deploying (see item 8).
+10. Test the checklist edit mode toggle, hiding a static item, and restoring it, in the production app with both allowed accounts, and confirm the progress bar total updates correctly when items are hidden.
 
 Potential future improvements:
 
