@@ -456,7 +456,7 @@ const ACCOMMODATION_BOOKINGS = {
   "8/28(금)~8/29(토) — Alberg Centre Esplai": {
     hotelName: "Alberg Centre Esplai",
     checkin: "2026-08-28",
-    scheduleOrder: 2, // "인천공항 출발 계획", "바르셀로나 공항 → 이동" 카드 다음, "호텔 후기" 카드 앞에 표시
+    scheduleOrder: 2, // "인천공항 출발 계획", "바르셀로나 공항 → 이동" 카드 다음(맨 뒤)에 표시
     breakfast: "included",
     breakfastText: "조식 포함",
     rows: [
@@ -472,7 +472,8 @@ const ACCOMMODATION_BOOKINGS = {
       ["주소", "42 Carrer del Riu Anoia, Barcelona, 08820"],
       ["특별 요청", "금연실"]
     ],
-    note: "예약 확정 및 결제 완료됨"
+    note: "예약 확정 및 결제 완료됨",
+    link: "https://blog.naver.com/eudemonic005/224348941656"
   },
   "8/29(토)~8/31(월) — Gran Hotel Sóller": {
     hotelName: "Gran Hotel Sóller",
@@ -591,12 +592,6 @@ const SCHEDULE_DAY_NOTES = {
       ],
       note: "바르셀로나 공항 도착 후 첫 번째 숙소인 Alberg Centre Esplai로 이동하는 방법입니다.",
       link: "https://m.blog.naver.com/eudemonic005/224333827362"
-    },
-    {
-      title: "Alberg Centre Esplai 호텔 후기 (참고용)",
-      rows: [],
-      note: "첫 번째 숙소 Alberg Centre Esplai에 대한 숙박 후기입니다.",
-      link: "https://blog.naver.com/eudemonic005/224348941656"
     }
   ]
 };
@@ -842,6 +837,17 @@ function createBookingCard(booking) {
     note.className = "booking-note";
     note.textContent = booking.note;
     card.appendChild(note);
+  }
+
+  if (booking.link) {
+    const link = document.createElement("a");
+    link.href = booking.link;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.className = "item-link";
+    link.textContent = "🔗 참고 링크";
+    link.style.display = "block";
+    card.appendChild(link);
   }
 
   return card;
@@ -1467,6 +1473,7 @@ function renderSchedule() {
           `).join("")}
         </div>
         ${checkinBooking.note ? `<p class="booking-note">${escapeHtml(checkinBooking.note)}</p>` : ""}
+        ${checkinBooking.link ? `<a class="item-link" href="${escapeAttribute(checkinBooking.link)}" target="_blank" rel="noopener noreferrer">🔗 참고 링크</a>` : ""}
       </div>
     ` : "";
     // 참고 카드 순서: dayNotes 카드들 사이에 예약 카드를 끼워 넣을 수 있도록
