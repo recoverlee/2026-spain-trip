@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (Barcelona transit ticket info added)
+Last updated: 2026-08-24 (Airport taxi/bus guide link added; checklist count now 119)
 
 ## Project Overview
 
@@ -16,17 +16,16 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 ## Current Git State
 
-Latest pushed commits:
+Latest pushed commit on `main`:
 
-- `d952876 docs: record GitHub Pages as the site's hosting mechanism`
-- `44e8c91 feat: show accommodation booking info in checklist (#3)`
-- `0b3d923 docs: sync progress.md with accommodation range commits (#2)`
+- `425b7ee feat: add Barcelona airport taxi/bus guide link to 이동 checklist`
 
-Current change set: working tree clean, all features committed and merged to main
+Current change set: working tree clean, all features committed and pushed directly to `main`
 
-The accommodation booking info feature (commit `44e8c91`) added read-only booking info cards to the checklist accommodation headings. The flattened checklist item count and all item labels remain unchanged.
+Workflow note (as of 2026-08-24):
 
-The hosting documentation update (commit `d952876`) clarified that GitHub Pages serves the static site, not Firebase Hosting.
+- Development now happens directly on `main` and is pushed immediately, at the user's explicit request. The previously used feature branch `claude/progress-md-review-23dfmg` is no longer the active development branch; it may be behind `main` going forward.
+- Because GitHub Pages serves `main`, this means every push to `main` deploys immediately. Verify changes locally before pushing when possible.
 
 Historical note:
 
@@ -64,9 +63,9 @@ Document fields:
 
 Important compatibility note:
 
-- Checklist item count remains `118`.
-- Checklist item count is preserved to protect existing Firestore checkbox keys.
-- When checklist text is intentionally corrected, keep the flattened item count stable unless a key migration is planned.
+- Checklist item count is now `119` (was `118` through `d0c2a4d`).
+- Checklist item count was previously preserved to protect existing Firestore checkbox keys. As of `425b7ee`, a new leaf item (`바르셀로나 공항 택시/버스 이용법`, a link-only reference item) was appended at the end of the `🗺️ 8. 이동` section, which is not the end of the whole checklist, so it shifts flattened indexes for all later sections.
+- When checklist text is intentionally corrected, keep the flattened item count stable unless a key migration is planned, or accept and document the drift as done here.
 
 Booking info is display-only:
 
@@ -74,12 +73,24 @@ Booking info is display-only:
 - They are rendered as a card under the matching checklist accommodation heading and are not checkboxes.
 - Nothing about them is read from or written to Firestore, so checkbox keys are unaffected.
 
+Section reference-info cards are also display-only:
+
+- `SECTION_INFO_CARDS` (e.g. Barcelona transit ticket prices) render at the bottom of a matching checklist section and are not checkboxes.
+- A checklist leaf item can now optionally carry a link: `[text, url]` instead of `[text]`. When present, a `🔗 참고 링크` link renders under the item text and opens in a new tab. This does not add a Firestore field; the link is purely client-side.
+
 Known index drift at `02f4ce0`:
 
 - Removing `Colon Hotel Barcelona` (2 items) and adding 2 items to `Casp 74 Apartments` kept the total at `118`, but shifted the meaning of one flattened index.
 - Flattened index `23` changed from `예약 확인` (Colon Hotel Barcelona) to `9/7(월) 체크아웃 준비 확인` (Casp 74 Apartments).
 - The other `117` indexes keep their previous labels.
 - Any `state` or `checkedBy` value already stored for index `23` now applies to the new item, so that one checkbox should be reviewed in the app.
+
+Known index drift at `425b7ee`:
+
+- Added `바르셀로나 공항 택시/버스 이용법` as flattened index `97`, at the end of the `🗺️ 8. 이동` section.
+- Total item count grew from `118` to `119`.
+- Every flattened index from `97` onward shifted by `+1` relative to before this change. This affects the remaining items in `🗺️ 8. 이동` after index 97 (none, since it was appended last) and all items in `🩹 9. 개인용품` and `🔐 10. 출국 직전`.
+- Any `state` or `checkedBy` values already stored for indexes `97` and above now apply to a different item one position later, so checked items in those two sections should be reviewed and re-checked in the app if needed.
 
 ### Schedule
 
@@ -360,6 +371,18 @@ Committed and pushed:
 - Entered Barcelona transit passes: T-casual (€13), T-usual (€22.80), T-familiar (€11.50), T-grup (€91), T-dia (€12), with ride counts, validity, and transfer window for each.
 - This card is display-only, same pattern as `ACCOMMODATION_BOOKINGS`; nothing is read from or written to Firestore.
 
+### Airport Taxi/Bus Guide Link
+
+Committed and pushed directly to `main`:
+
+- `425b7ee feat: add Barcelona airport taxi/bus guide link to 이동 checklist`
+
+- Extended checklist leaf items to optionally support a link: `[text, url]` in addition to the existing `[text]` form.
+- When `item[1]` is a string, `renderChecklist()` renders a `🔗 참고 링크` link (opens in a new tab) under the item text, reusing the `.item-link` style used elsewhere.
+- The link click has `stopPropagation()` so tapping the link does not also toggle the item's checkbox.
+- Added a new checklist item `바르셀로나 공항 택시/버스 이용법` at the end of the `🗺️ 8. 이동` section, linking to `https://m.blog.naver.com/eudemonic005/224333827362`.
+- This increased the flattened checklist item count from `118` to `119` and shifted indexes `97` and above. See "Known index drift at `425b7ee`" above.
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -370,9 +393,10 @@ Latest local verification after adding accommodation booking info:
 - `firebase.json` JSON parse: PASS
 - `git diff --check`: PASS
 - duplicate HTML id check: PASS
-- checklist data compatibility check: PASS, flattened checklist count remains `118`
-- checklist index stability check: PASS for the current change set, `0` of `118` labels changed
+- checklist data compatibility check: checklist count increased from `118` to `119` at `425b7ee`, an intentional new item, see index drift note above
 - checklist index stability check: WARNING, `1` of `118` flattened indexes changed meaning at `02f4ce0`
+- checklist index stability check: WARNING, indexes `97` and above shifted by `+1` at `425b7ee` (new item appended mid-checklist, not at the very end)
+- checklist item link rendering check: PASS, `🔗 참고 링크` renders under the new taxi/bus item and opens in a new tab without toggling its checkbox
 - booking key match check: PASS, every `ACCOMMODATION_BOOKINGS` key matches an existing checklist heading
 - booking card render check: PASS, `2` cards render at `430px` and `900px` viewports via headless Chromium
 - payer removal check: PASS, no `payer` or `결제자` reference remains in `index.html`
@@ -395,7 +419,7 @@ Recommended next steps:
 
 1. **Test login page UI** — Verify login page displays before authentication and app shows after login with both desktop and mobile viewports.
 2. Verify booking info UI rendering with the two allowed accounts in the production app.
-3. Verify checklist index `23` in the live app, since its meaning changed at `02f4ce0`.
+3. Verify checklist index `23` in the live app, since its meaning changed at `02f4ce0`, and indexes `97`+ in `🩹 9. 개인용품` / `🔐 10. 출국 직전` since they shifted at `425b7ee` — re-check any previously checked items in those two sections.
 4. Add booking info for `Casp 74 Apartments` once the confirmation is available.
 5. Confirm the breakfast policy for `Meliá Palma Marina` and update its badge from `조식 미확인`.
 6. Test Schedule and Expense CRUD with the two allowed Google accounts to ensure realtime sync works correctly.
