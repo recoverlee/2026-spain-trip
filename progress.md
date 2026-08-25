@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24
+Last updated: 2026-08-24 (PWA cache v3 for login page)
 
 ## Project Overview
 
@@ -16,20 +16,19 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 ## Current Git State
 
-Latest pushed commit before adding accommodation booking info:
+Latest pushed commits:
 
+- `d952876 docs: record GitHub Pages as the site's hosting mechanism`
+- `44e8c91 feat: show accommodation booking info in checklist (#3)`
 - `0b3d923 docs: sync progress.md with accommodation range commits (#2)`
 
-Current change set:
+Current change set: working tree clean, all features committed and merged to main
 
-- `index.html` modified
-- `progress.md` modified
+The accommodation booking info feature (commit `44e8c91`) added read-only booking info cards to the checklist accommodation headings. The flattened checklist item count and all item labels remain unchanged.
 
-These changes add read-only booking info cards to the checklist accommodation headings. The flattened checklist item count and all item labels are unchanged.
+The hosting documentation update (commit `d952876`) clarified that GitHub Pages serves the static site, not Firebase Hosting.
 
-`02f4ce0` touched `index.html` and `progress.md`. It fixed accommodation stay ranges in the checklist and made schedule headers show hotel handoff days as `숙소1 -> 숙소2`, while leaving schedule CRUD, checklist, auth, and Firestore sync behavior unchanged.
-
-Note on commit naming:
+Historical note:
 
 - `02f4ce0` was pushed with the placeholder subject `변경 내용 설명`. It is already on `main`, so it is left as is rather than rewriting published history.
 
@@ -199,7 +198,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v2`
+- current cache name is `spain-trip-pwa-v3` (bumped for login page + booking updates)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -310,15 +309,43 @@ Committed and pushed:
 
 ### Accommodation Booking Info
 
-Implemented in the current change set:
+Committed and pushed:
+
+- `44e8c91 feat: show accommodation booking info in checklist (#3)`
+
+Implementation details:
 
 - Added `ACCOMMODATION_BOOKINGS`, keyed by the same heading strings used by `ACCOMMODATION_MAP_URLS`.
 - Added `createBookingCard()` and rendered a booking card under matching accommodation headings in the checklist tab.
 - Card shows reservation number, stay dates and nights, room type, occupancy, rate, guest name, and phone.
 - Breakfast status is shown as a colored badge: included, excluded, or unknown.
 - Added an optional cancellation note line.
-- Entered `Gran Hotel Sóller` and `Meliá Palma Marina` from the supplied confirmations.
-- `Alberg Centre Esplai` and `Casp 74 Apartments` have no confirmation yet, so they render heading and checkboxes only.
+- Entered complete booking details for `Alberg Centre Esplai` (with payment confirmation), `Gran Hotel Sóller` and `Meliá Palma Marina` from the supplied confirmations.
+- `Casp 74 Apartments` still has no confirmation, so it renders heading and checkboxes only.
+- `Alberg Centre Esplai` breakfast status confirmed as included (조식 포함).
+
+### GitHub Pages Hosting Documentation
+
+Committed and pushed:
+
+- `d952876 docs: record GitHub Pages as the site's hosting mechanism`
+
+Clarified in `progress.md` that the static site is served by GitHub Pages, not Firebase Hosting. This documentation aligns with the repository setup where `firebase.json` has no `hosting` key and there is no `.firebaserc`.
+
+### Login Page Implementation
+
+Committed and pushed:
+
+- `940fb63 feat: add login page - show app only to authenticated users`
+
+Implemented a dedicated login page that is shown before authentication. Key changes:
+- Added full-screen login page with Google authentication button
+- App UI (tabs, checklist, schedule, expenses) is hidden until user logs in
+- Smooth transition: after successful login, app content becomes visible
+- Unauthorized users (not in USERS list) are automatically signed out
+- Loading state displayed during login process
+- Gradient background and styled login card for better UX
+- Repository remains public; personal information is now protected by authentication, not repository privacy
 
 ## Local Verification Results
 
@@ -338,7 +365,7 @@ Latest local verification after adding accommodation booking info:
 - payer removal check: PASS, no `payer` or `결제자` reference remains in `index.html`
 - schedule accommodation link check: PASS, daily accommodation mapping is present for hotel nights
 - accommodation range fix check: PASS, `Colon Hotel Barcelona` is removed and handoff days are mapped
-- service worker cache name check: PASS, `spain-trip-pwa-v2`
+- service worker cache name check: PASS, `spain-trip-pwa-v3`
 - Firebase init code presence: PASS
 - Google Auth flow code presence: PASS
 - checklist Firestore sync code presence: PASS
@@ -353,13 +380,14 @@ Latest local verification after adding accommodation booking info:
 
 Recommended next steps:
 
-1. Review the current UI in a browser on desktop and mobile viewport.
-2. Verify checklist index `23` in the live app, since its meaning changed at `02f4ce0`.
-3. Add booking info for `Alberg Centre Esplai` and `Casp 74 Apartments` once those confirmations are available.
-4. Confirm the breakfast policy for `Meliá Palma Marina` and change its badge from `조식 미확인`.
-5. Confirm whether seed schedule items should be added automatically or entered manually in the app.
-6. Deploy Firestore Rules after review. They are still not deployed, so production Firestore is not yet protected by them.
-7. Test Schedule and Expense CRUD with the two allowed Google accounts.
+1. **Test login page UI** — Verify login page displays before authentication and app shows after login with both desktop and mobile viewports.
+2. Verify booking info UI rendering with the two allowed accounts in the production app.
+3. Verify checklist index `23` in the live app, since its meaning changed at `02f4ce0`.
+4. Add booking info for `Casp 74 Apartments` once the confirmation is available.
+5. Confirm the breakfast policy for `Meliá Palma Marina` and update its badge from `조식 미확인`.
+6. Test Schedule and Expense CRUD with the two allowed Google accounts to ensure realtime sync works correctly.
+7. Confirm whether seed schedule items should be added automatically or entered manually in the app.
+8. **Deploy Firestore Rules after review.** They are still not deployed, so production Firestore is not yet protected by them. Use `firebase deploy --only firestore:rules` with Firebase CLI access.
 
 Potential future improvements:
 
