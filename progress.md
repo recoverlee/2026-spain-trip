@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (Airport taxi/bus guide link added; checklist count now 119)
+Last updated: 2026-08-24 (BCN-PMI baggage info card added)
 
 ## Project Overview
 
@@ -18,7 +18,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `425b7ee feat: add Barcelona airport taxi/bus guide link to 이동 checklist`
+- `48b951a feat: add BCN-PMI round trip baggage info card to 항공 checklist section`
 
 Current change set: working tree clean, all features committed and pushed directly to `main`
 
@@ -383,6 +383,18 @@ Committed and pushed directly to `main`:
 - Added a new checklist item `바르셀로나 공항 택시/버스 이용법` at the end of the `🗺️ 8. 이동` section, linking to `https://m.blog.naver.com/eudemonic005/224333827362`.
 - This increased the flattened checklist item count from `118` to `119` and shifted indexes `97` and above. See "Known index drift at `425b7ee`" above.
 
+### BCN-PMI Baggage Info Card
+
+Committed and pushed directly to `main`:
+
+- `48b951a feat: add BCN-PMI round trip baggage info card to 항공 checklist section`
+
+- Added `SECTION_BOOKING_STYLE_CARDS`, a second generic map keyed by checklist section title, rendered with `createBookingCard()` (the booking-card look, reused for non-accommodation reference info).
+- Generalized `createBookingCard()` to accept an optional `cardTitle` field; falls back to `예약 정보` when absent, so existing `ACCOMMODATION_BOOKINGS` cards are unaffected.
+- `renderChecklist()` now also appends a `SECTION_BOOKING_STYLE_CARDS` card after a section's items and after any `SECTION_INFO_CARDS` transit card, if one exists for that section.
+- Entered Air Europa BCN ↔ PMI round-trip baggage rules for 3 passengers (성인 2 + 아동 1): personal item (4kg, 40×30×15cm, ×3), cabin bag (10kg, 55×35×25cm, ×3), checked bag not included in the base Economy Lite fare, and 2 extra checked bags already purchased (23kg, 158cm combined dimensions each, one per direction for 재환) with the owned suitcase size noted as within limits (74×47×31cm = 152cm).
+- This card is display-only, same pattern as `ACCOMMODATION_BOOKINGS` and the transit ticket card; nothing is read from or written to Firestore.
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -397,6 +409,8 @@ Latest local verification after adding accommodation booking info:
 - checklist index stability check: WARNING, `1` of `118` flattened indexes changed meaning at `02f4ce0`
 - checklist index stability check: WARNING, indexes `97` and above shifted by `+1` at `425b7ee` (new item appended mid-checklist, not at the very end)
 - checklist item link rendering check: PASS, `🔗 참고 링크` renders under the new taxi/bus item and opens in a new tab without toggling its checkbox
+- baggage info card render check: PASS, card renders at the bottom of `✈️ 1. 항공` using the booking-card style with custom `cardTitle`
+- `createBookingCard()` title regression check: PASS, existing `ACCOMMODATION_BOOKINGS` cards still show `예약 정보` (no `cardTitle` set)
 - booking key match check: PASS, every `ACCOMMODATION_BOOKINGS` key matches an existing checklist heading
 - booking card render check: PASS, `2` cards render at `430px` and `900px` viewports via headless Chromium
 - payer removal check: PASS, no `payer` or `결제자` reference remains in `index.html`
