@@ -461,6 +461,7 @@ const ACCOMMODATION_BOOKINGS = {
       ["룸타입", "Comfort Triple Room"],
       ["인원", "성인 3명"],
       ["혜택", "주차장, 무료 Wi-Fi, 조식 포함"],
+      ["조식 시간", "07:00 ~ 10:00"],
       ["체크인", "14:00 이후"],
       ["체크아웃", "11:00 이전"],
       ["요금", "₩157,616 (₩15,166 서비스료 포함, ₩9,297 할인 적용)"],
@@ -556,6 +557,12 @@ const SCHEDULE_DAY_NOTES = {
       ],
       note: "바르셀로나 공항 도착 후 첫 번째 숙소인 Alberg Centre Esplai로 이동하는 방법입니다.",
       link: "https://m.blog.naver.com/eudemonic005/224333827362"
+    },
+    {
+      title: "Alberg Centre Esplai 호텔 후기 (참고용)",
+      rows: [],
+      note: "첫 번째 숙소 Alberg Centre Esplai에 대한 숙박 후기입니다.",
+      link: "https://blog.naver.com/eudemonic005/224348941656"
     }
   ]
 };
@@ -1395,6 +1402,7 @@ function renderSchedule() {
       if (orderDiff) return orderDiff;
       return `${a.time || "99:99"}${a.title || ""}`.localeCompare(`${b.time || "99:99"}${b.title || ""}`);
     });
+    const dayNotes = SCHEDULE_DAY_NOTES[date] || [];
     const itemHtml = sorted.length ? sorted.map(item => `
       <div class="timeline-item">
         <div class="timeline-time">${item.time || "종일"}</div>
@@ -1409,12 +1417,11 @@ function renderSchedule() {
           </div>
         </div>
       </div>
-    `).join("") : `<div class="empty">등록된 일정이 없습니다.</div>`;
+    `).join("") : dayNotes.length ? "" : `<div class="empty">등록된 일정이 없습니다.</div>`;
     const accommodation = DAILY_ACCOMMODATIONS[date];
     const accommodationHtml = accommodation ? `
       <a class="timeline-stay" href="${escapeAttribute(accommodation.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(accommodation.name)}</a>
     ` : "";
-    const dayNotes = SCHEDULE_DAY_NOTES[date] || [];
     const dayNoteHtml = dayNotes.map(dayNote => `
       <div class="booking-card">
         <div class="booking-head"><span class="booking-title">${escapeHtml(dayNote.title)}</span></div>
