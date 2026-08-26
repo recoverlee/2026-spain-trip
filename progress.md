@@ -1,16 +1,17 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (Gran Hotel Sóller card reordered on 8/29 for chronological order; cache v9)
+Last updated: 2026-08-24 (new 쇼핑 (shopping) tab added; cache v10)
 
 ## Project Overview
 
 This repository powers the `2026 Spain Trip` web app connected to GitHub repository `recoverlee/2026-spain-trip`.
 
-The app started as a single-page Firebase-backed checklist and is now being expanded into a mobile-first travel management web app with three tabs:
+The app started as a single-page Firebase-backed checklist and is now being expanded into a mobile-first travel management web app with four tabs:
 
-1. Schedule
-2. Expenses
-3. Checklist
+1. Schedule (일정)
+2. Expenses (지출)
+3. Shopping (쇼핑) — added 2026-08-24
+4. Checklist (체크리스트)
 
 The app is intentionally still kept mostly inside `index.html` to avoid a large structural migration while the feature set is stabilizing.
 
@@ -18,7 +19,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `0865cd9 chore: bump PWA cache version to v9 for 8/29 card order fix`
+- `b5f8b7c chore: bump PWA cache version to v10 for shopping tab`
 
 ⚠️ **Action needed (still open from `8c36e0d`):** the custom checklist item feature added a new Firestore path (`tripData/checklistCustom/items`) and updated `firestore.rules` to allow it, but rules are still not deployed to production (see Firestore Security Rules section). Until `firebase deploy --only firestore:rules` is run, whether add/delete/check on custom items works depends on whatever rules are currently live on the `spain-trip-3006a` project — if production is still on permissive/test-mode rules it will work; if a stricter rule set without this path is live, custom item writes will fail with a permission error. Deploy the rules to be sure.
 
@@ -168,6 +169,32 @@ Current UI:
   - today expenses
   - category totals
 
+### Shopping
+
+Path:
+
+```text
+tripData/shopping/items/{id}
+```
+
+Fields:
+
+- `title`: string, required
+- `link`: string (URL), required
+- `note`: string, optional
+- `createdAt`: Firestore `serverTimestamp()`
+- `createdBy`: display name
+- `updatedAt`: Firestore `serverTimestamp()`
+- `updatedBy`: display name
+
+Current UI:
+
+- `쇼핑` tab, positioned between `지출` and `체크리스트`
+- `+ 쇼핑 추가` opens a small form: 타이틀 (title), 링크 (link, `type="url"`), 메모 (optional note)
+- Each saved item renders as a card whose title is a clickable link (`target="_blank"`) that opens the URL directly, with 수정/삭제 buttons below
+- realtime Firestore subscription via `onSnapshot`, ordered by `createdAt` descending (newest first) — same CRUD pattern as Schedule/Expenses (`resetShoppingForm`/`openShoppingForm`/`closeShoppingForm`, `saveShoppingItem`, `deleteShoppingItem`, `loadShopping`)
+- Wired into `loadTripData()`, `clearSharedDataViews()`, and the `setDataControlsEnabled()` disabled-when-logged-out list, consistent with the other tabs
+
 ### Custom Checklist Items
 
 Path:
@@ -237,6 +264,7 @@ Current rules intent:
 - allow `tripData/schedule/items/{id}`
 - allow `tripData/expenses/items/{id}`
 - allow `tripData/checklistCustom/items/{id}` (added in commit `8c36e0d`, for the new custom checklist item feature)
+- allow `tripData/shopping/items/{id}` (added in commit `fe8a997`, for the new 쇼핑 tab)
 - deny all other document paths
 
 Note:
@@ -268,7 +296,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v9` (bumped for the 8/29 card chronological reorder; `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v10` (bumped for the new shopping tab; `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -644,6 +672,24 @@ The `Gran Hotel Sóller` booking (check-in `2026-08-29`) had no `scheduleOrder`,
 - Set `scheduleOrder: 2` on `Gran Hotel Sóller`, so `2026-08-29` now renders: 마요르카 이동 (Alberg Centre Esplai → BCN T1) → Record Go 렌터카 수령 → **[Gran Hotel Sóller 예약 카드]**, matching the day's actual sequence of events.
 - Bumped `sw.js` cache to `spain-trip-pwa-v9`.
 
+### New Shopping Tab (Shared Title+Link Bookmarks)
+
+Committed and pushed directly to `main`:
+
+- `fe8a997 feat: add 쇼핑 (shopping) tab for shared title+link bookmarks`
+- `b5f8b7c chore: bump PWA cache version to v10 for shopping tab`
+
+Added a fourth tab, `쇼핑`, positioned between `지출` and `체크리스트`. Purpose: let either user quickly save a title + a link (e.g. a product page, a packing-list article) to a shared list the other person can also see and open.
+
+- New Firestore collection `tripData/shopping/items` with fields `title`, `link`, optional `note`, plus the usual `createdAt`/`createdBy`/`updatedAt`/`updatedBy`. See the Firebase Data Model section above for full field docs.
+- New form (`shoppingForm`): 타이틀 (required text), 링크 (required `type="url"` input), 메모 (optional textarea).
+- Each saved item renders as a `.shopping-item` card whose **title itself is the clickable link** (`target="_blank"`, opens immediately) — no separate "open" button, matching the user's request to make items "누르면 링크도 바로바로 실행되도록" (open on click). 수정/삭제 buttons sit below.
+- Implementation mirrors the existing Schedule/Expenses CRUD pattern exactly: `resetShoppingForm()`, `openShoppingForm(item)`, `closeShoppingForm()`, `renderShopping()`, `saveShoppingItem(event)`, `deleteShoppingItem(id)`, `loadShopping()` (realtime `onSnapshot`, ordered by `createdAt` descending so newest links show first).
+- Wired into `loadTripData()`, `clearSharedDataViews()` (resets `shoppingItems = []` and re-renders on logout), and the `setDataControlsEnabled()` list (`addShoppingBtn` disabled when logged out, alongside the other add buttons).
+- `.tabs` CSS grid changed from `repeat(3,1fr)` to `repeat(4,1fr)` to fit the new tab button.
+- Updated `firestore.rules` to add `"shopping"` to the allowed `section` list under the existing `tripData/{section}/items/{itemId}` wildcard rule — same not-yet-deployed caveat as the other recent rule changes (see Firestore Security Rules section and Future Work Notes).
+- Bumped `sw.js` cache to `spain-trip-pwa-v10`.
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -697,8 +743,12 @@ Latest local verification after adding accommodation booking info:
 - Casp 74 schedule card check: PASS, booking card now renders under `2026-09-03` in the `일정` tab with no code changes beyond adding the data
 - `scheduleOrder` splice logic check: PASS, simulated with `["A","B","C"]` and `scheduleOrder: 2` produces `["A","B","[booking]","C"]`; `2026-08-28` now renders 인천공항 출발 계획 → 바르셀로나 공항 이동 → 예약 카드 → 호텔 후기
 - `scheduleOrder` default/regression check: PASS, dates and bookings without `scheduleOrder` (`Gran Hotel Sóller`, `Meliá Palma Marina`, `Casp 74 Apartments`) still render their booking card before any day notes, unchanged from before this fix
-- service worker cache name check: PASS, `spain-trip-pwa-v9`
+- service worker cache name check: PASS, `spain-trip-pwa-v10`
 - 8/29 card order check: PASS, `Gran Hotel Sóller` booking card now renders after both day-note cards (마요르카 이동, 렌터카 수령), matching the day's chronological order
+- shopping tab code presence check: PASS, `shoppingCollection`, `resetShoppingForm()`, `openShoppingForm()`, `closeShoppingForm()`, `renderShopping()`, `saveShoppingItem()`, `deleteShoppingItem()`, `loadShopping()` all present
+- shopping tab duplicate-id check: PASS, no new duplicate ids introduced (only the pre-existing unrelated `googleLoginBtn` duplicate remains, from before the dedicated login page)
+- shopping tab wiring check: PASS, `addShoppingBtn` disabled when logged out via `setDataControlsEnabled()`; `shoppingItems` reset and `renderShopping()` called on logout via `clearSharedDataViews()`; `loadShopping()` called from `loadTripData()`
+- shopping card click-to-open check: PASS, the item title is itself an `<a target="_blank">`, opens the link directly on click without needing a separate button
 - rental car schedule card render check: PASS, second `2026-08-29` card renders reservation rows (with `code`-styled reservation number), the 6-step pickup note, and the reference link
 - 8/29 schedule card render check: PASS, new card renders under the `2026-08-29` date header with all 10 rows and the note; no `checkinBooking` on this date so `scheduleOrder` logic does not apply
 
@@ -710,12 +760,13 @@ Recommended next steps:
 2. Verify booking info UI rendering with the two allowed accounts in the production app — note booking cards now live in the `일정` tab under each check-in date, not the checklist tab.
 3. Verify checklist index `23` in the live app, since its meaning changed at `02f4ce0`, and indexes `97`+ in `🩹 9. 개인용품` / `🔐 10. 출국 직전` since they shifted at `425b7ee` — re-check any previously checked items in those two sections.
 4. Confirm whether the `Casp 74 Apartments` self-parking fee (€28/day) was actually paid, and update the note if so — currently marked "지불 여부 미확인" based on the supplied confirmation screenshots.
-5. Test Schedule and Expense CRUD with the two allowed Google accounts to ensure realtime sync works correctly.
+5. Test Schedule, Expense, and now Shopping CRUD with the two allowed Google accounts to ensure realtime sync works correctly.
 6. Confirm whether seed schedule items should be added automatically or entered manually in the app.
-7. **Deploy Firestore Rules after review.** They are still not deployed, so production Firestore is not yet protected by them, and the new custom checklist item feature (`tripData/checklistCustom/items`) may not work until this is done. Use `firebase deploy --only firestore:rules` with Firebase CLI access.
+7. **Deploy Firestore Rules after review.** They are still not deployed, so production Firestore is not yet protected by them, and the new custom checklist item and shopping tab features (`tripData/checklistCustom/items`, `tripData/shopping/items`) may not work until this is done. Use `firebase deploy --only firestore:rules` with Firebase CLI access.
 8. Test adding, checking, and deleting a custom checklist item with both allowed accounts in the production app; if it fails with a permission error, that confirms rules need deploying (see item 7).
 9. Test the checklist edit mode toggle, hiding a static item, and restoring it, in the production app with both allowed accounts, and confirm the progress bar total updates correctly when items are hidden.
 10. Get the exact Aena Barcelona-El Prat airport info URL from the user and add it as a `link` on the `2026-08-29` Mallorca transfer schedule card.
+11. Test adding, editing, and deleting a shopping item with both allowed accounts in the production app, and confirm clicking a saved title opens the link in a new tab as intended.
 
 Potential future improvements:
 
