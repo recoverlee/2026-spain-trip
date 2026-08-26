@@ -16,7 +16,7 @@ service cloud.firestore {
 
     match /tripData/{section}/items/{itemId} {
       allow read, write: if isAllowedUser()
-        && section in ["schedule", "expenses", "checklistCustom"];
+        && section in ["schedule", "expenses", "checklistCustom", "shopping"];
     }
 
     match /{document=**} {

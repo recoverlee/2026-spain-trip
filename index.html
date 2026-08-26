@@ -31,7 +31,7 @@
   .progress-row { display:flex; justify-content:space-between; font-weight:700; margin-bottom:8px; }
   .bar { height:10px; background:#ffffff44; border-radius:99px; overflow:hidden; }
   #barFill { height:100%; width:0%; background:#fff; transition:.2s; }
-  .tabs { position:sticky; top:0; z-index:5; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:14px 0; padding:8px; background:#f5f7fbe6; backdrop-filter:blur(12px); }
+  .tabs { position:sticky; top:0; z-index:5; display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:14px 0; padding:8px; background:#f5f7fbe6; backdrop-filter:blur(12px); }
   .tab-btn { border:1px solid var(--line); background:#fff; color:var(--muted); }
   .tab-btn.active { border-color:var(--accent); background:var(--accent); color:#fff; }
   .tab-panel { display:none; }
@@ -87,6 +87,11 @@
   .expense-amount { font-size:18px; font-weight:900; color:var(--accent); white-space:nowrap; }
   .expense-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
   .tag { display:inline-block; padding:2px 7px; background:#eef2ff; color:#27357a; border-radius:999px; font-size:12px; font-weight:800; }
+  .shopping-list { display:grid; gap:8px; }
+  .shopping-item { background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px; box-shadow:0 3px 14px #00000006; }
+  .shopping-item .item-link { font-size:16px; font-weight:900; color:var(--accent); text-decoration:none; word-break:break-all; }
+  .shopping-item .item-link:hover { text-decoration:underline; }
+  .shopping-item .item-note { margin-top:4px; }
   button { border:1px solid var(--line); background:#fff; color:var(--text); padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:700; }
   button:hover { background:#f0f3ff; }
   button:disabled { opacity:.55; cursor:not-allowed; }
@@ -220,6 +225,7 @@
 <nav class="tabs" aria-label="주요 메뉴">
   <button class="tab-btn active" data-tab="schedule">일정</button>
   <button class="tab-btn" data-tab="expenses">지출</button>
+  <button class="tab-btn" data-tab="shopping">쇼핑</button>
   <button class="tab-btn" data-tab="checklist">체크리스트</button>
 </nav>
 
@@ -325,6 +331,35 @@
     <div id="expenseList" class="expense-list"></div>
   </div>
 
+  <div id="shoppingPanel" class="tab-panel">
+    <div class="toolbar">
+      <h2>쇼핑</h2>
+      <button id="addShoppingBtn" class="primary-btn">+ 쇼핑 추가</button>
+    </div>
+    <form id="shoppingForm" class="form-card">
+      <input type="hidden" id="shoppingId">
+      <div class="form-grid">
+        <div class="full">
+          <span class="field-label">타이틀</span>
+          <input type="text" id="shoppingTitle" placeholder="예: 유아용품 추천 리스트" required>
+        </div>
+        <div class="full">
+          <span class="field-label">링크</span>
+          <input type="url" id="shoppingLink" placeholder="https://..." required>
+        </div>
+        <div class="full">
+          <span class="field-label">메모</span>
+          <textarea id="shoppingNote" placeholder="선택 사항"></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" id="cancelShoppingBtn">취소</button>
+        <button type="submit" class="primary-btn">저장</button>
+      </div>
+    </form>
+    <div id="shoppingList" class="shopping-list"></div>
+  </div>
+
   <div id="checklistPanel" class="tab-panel">
     <div class="actions">
       <button id="uncheckAllBtn">전체 미완료</button>
@@ -397,6 +432,7 @@ const checklistRef = doc(db, "trip", "checklist");
 const scheduleCollection = collection(db, "tripData", "schedule", "items");
 const expensesCollection = collection(db, "tripData", "expenses", "items");
 const checklistCustomCollection = collection(db, "tripData", "checklistCustom", "items");
+const shoppingCollection = collection(db, "tripData", "shopping", "items");
 
 const ACCOMMODATION_MAP_URLS = {
   "8/28(금)~8/29(토) — Alberg Centre Esplai": "https://www.google.com/maps/search/?api=1&query=Alberg%20Centre%20Esplai",
@@ -634,12 +670,14 @@ let checkedBy = {};
 let hiddenKeys = {};
 let schedules = [];
 let expenses = [];
+let shoppingItems = [];
 let customChecklistItems = [];
 let currentUser = null;
 let editMode = false;
 let unsubscribeChecklist = null;
 let unsubscribeSchedule = null;
 let unsubscribeExpenses = null;
+let unsubscribeShopping = null;
 let unsubscribeChecklistCustom = null;
 let totalItems = 0;
 let totalStaticItems = 0;
@@ -730,6 +768,7 @@ const appEl = document.getElementById("checklistApp");
 const scheduleListEl = document.getElementById("scheduleList");
 const expenseSummaryEl = document.getElementById("expenseSummary");
 const expenseListEl = document.getElementById("expenseList");
+const shoppingListEl = document.getElementById("shoppingList");
 const progressText = document.getElementById("progressText");
 const barFill = document.getElementById("barFill");
 
@@ -1416,7 +1455,7 @@ function setActiveTab(tabName) {
 }
 
 function setDataControlsEnabled(enabled) {
-  ["addScheduleBtn", "addExpenseBtn", "uncheckAllBtn", "checkAllBtn", "editModeBtn"].forEach(id => {
+  ["addScheduleBtn", "addExpenseBtn", "addShoppingBtn", "uncheckAllBtn", "checkAllBtn", "editModeBtn"].forEach(id => {
     const btn = document.getElementById(id);
     if (btn) btn.disabled = !enabled;
   });
@@ -1738,6 +1777,91 @@ async function deleteExpenseItem(id) {
   }
 }
 
+function resetShoppingForm() {
+  document.getElementById("shoppingId").value = "";
+  document.getElementById("shoppingTitle").value = "";
+  document.getElementById("shoppingLink").value = "";
+  document.getElementById("shoppingNote").value = "";
+}
+
+function openShoppingForm(item = null) {
+  const form = document.getElementById("shoppingForm");
+  resetShoppingForm();
+  if (item) {
+    document.getElementById("shoppingId").value = item.id;
+    document.getElementById("shoppingTitle").value = item.title || "";
+    document.getElementById("shoppingLink").value = item.link || "";
+    document.getElementById("shoppingNote").value = item.note || "";
+  }
+  form.classList.add("open");
+  document.getElementById("shoppingTitle").focus();
+}
+
+function closeShoppingForm() {
+  document.getElementById("shoppingForm").classList.remove("open");
+  resetShoppingForm();
+}
+
+function renderShopping() {
+  if (!shoppingItems.length) {
+    shoppingListEl.innerHTML = `<div class="empty">등록된 쇼핑 링크가 없습니다.</div>`;
+    return;
+  }
+
+  shoppingListEl.innerHTML = shoppingItems.map(item => `
+    <div class="shopping-item">
+      <a class="item-link" href="${escapeAttribute(item.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title)}</a>
+      ${item.note ? `<div class="item-note">${escapeHtml(item.note)}</div>` : ""}
+      <div class="item-actions">
+        <button class="mini-btn" data-shopping-edit="${item.id}">수정</button>
+        <button class="mini-btn" data-shopping-delete="${item.id}">삭제</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+async function saveShoppingItem(event) {
+  event.preventDefault();
+  if (!currentUser) return;
+
+  const id = document.getElementById("shoppingId").value;
+  const payload = {
+    title: document.getElementById("shoppingTitle").value.trim(),
+    link: document.getElementById("shoppingLink").value.trim(),
+    note: document.getElementById("shoppingNote").value.trim(),
+    updatedAt: serverTimestamp(),
+    updatedBy: getDisplayName(currentUser.email)
+  };
+
+  try {
+    if (id) {
+      await updateDoc(doc(shoppingCollection, id), payload);
+    } else {
+      await addDoc(shoppingCollection, {
+        ...payload,
+        createdAt: serverTimestamp(),
+        createdBy: getDisplayName(currentUser.email)
+      });
+    }
+    closeShoppingForm();
+    showStatus("쇼핑 링크가 저장되었습니다.");
+  } catch (error) {
+    console.error(error);
+    showStatus("쇼핑 링크를 저장하지 못했습니다. 로그인 상태와 네트워크를 확인해 주세요.", "error");
+  }
+}
+
+async function deleteShoppingItem(id) {
+  if (!currentUser || !confirm("이 쇼핑 링크를 삭제할까요?")) return;
+  try {
+    await deleteDoc(doc(shoppingCollection, id));
+    showStatus("쇼핑 링크가 삭제되었습니다.");
+  } catch (error) {
+    console.error(error);
+    showStatus("쇼핑 링크를 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.", "error");
+  }
+}
+
 function escapeHtml(value = "") {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -1801,9 +1925,35 @@ function loadExpenses() {
   );
 }
 
+function loadShopping() {
+  if (unsubscribeShopping) {
+    unsubscribeShopping();
+    unsubscribeShopping = null;
+  }
+
+  if (!currentUser) {
+    shoppingItems = [];
+    renderShopping();
+    return;
+  }
+
+  unsubscribeShopping = onSnapshot(
+    query(shoppingCollection, orderBy("createdAt", "desc")),
+    snapshot => {
+      shoppingItems = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+      renderShopping();
+    },
+    error => {
+      console.error(error);
+      showStatus("쇼핑 목록을 불러오지 못했습니다. Firestore 권한과 네트워크를 확인해 주세요.", "error");
+    }
+  );
+}
+
 function loadTripData() {
   loadSchedule();
   loadExpenses();
+  loadShopping();
 }
 
 function clearSharedDataViews() {
@@ -1819,6 +1969,10 @@ function clearSharedDataViews() {
     unsubscribeExpenses();
     unsubscribeExpenses = null;
   }
+  if (unsubscribeShopping) {
+    unsubscribeShopping();
+    unsubscribeShopping = null;
+  }
   if (unsubscribeChecklistCustom) {
     unsubscribeChecklistCustom();
     unsubscribeChecklistCustom = null;
@@ -1828,12 +1982,14 @@ function clearSharedDataViews() {
   hiddenKeys = {};
   schedules = [];
   expenses = [];
+  shoppingItems = [];
   customChecklistItems = [];
   editMode = false;
   updateEditModeBtn();
   appEl.innerHTML = "";
   renderSchedule();
   renderExpenses();
+  renderShopping();
   setDataControlsEnabled(false);
 }
 
@@ -1872,6 +2028,15 @@ expenseListEl.addEventListener("click", event => {
   const deleteId = event.target.dataset.expenseDelete;
   if (editId) openExpenseForm(expenses.find(item => item.id === editId));
   if (deleteId) deleteExpenseItem(deleteId);
+});
+document.getElementById("addShoppingBtn").onclick = () => openShoppingForm();
+document.getElementById("cancelShoppingBtn").onclick = closeShoppingForm;
+document.getElementById("shoppingForm").addEventListener("submit", saveShoppingItem);
+shoppingListEl.addEventListener("click", event => {
+  const editId = event.target.dataset.shoppingEdit;
+  const deleteId = event.target.dataset.shoppingDelete;
+  if (editId) openShoppingForm(shoppingItems.find(item => item.id === editId));
+  if (deleteId) deleteShoppingItem(deleteId);
 });
 document.getElementById("uncheckAllBtn").onclick = uncheckAll;
 document.getElementById("checkAllBtn").onclick = checkAll;
@@ -1926,8 +2091,10 @@ updateAuthUI();
 setDataControlsEnabled(false);
 resetScheduleForm();
 resetExpenseForm();
+resetShoppingForm();
 renderSchedule();
 renderExpenses();
+renderShopping();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
