@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (8/28 departure time updated to 07:10, bicycle mention removed; cache v11)
+Last updated: 2026-08-24 (9/4 Barcelona sightseeing route + Sagrada Familia tips added; cache v12)
 
 ## Project Overview
 
@@ -19,9 +19,9 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `67d50b4 chore: bump PWA cache version to v11 for 8/28 departure time update`
+- `c6e3754 chore: bump PWA cache version to v12 for 9/4 schedule card`
 
-⚠️ **Possible follow-up needed:** the `2026-08-28` departure card's `수원 출발` time changed from `06:30~06:40` to `07:10`, but the downstream rows (`07:50~08:10 인천공항 주차장 도착` etc.) were intentionally left unchanged since only the departure time and a note phrase were explicitly requested. A ~40–70 minute Suwon-to-Incheon-airport drive is tight with the new departure time; if the user wants the rest of the timeline shifted later to match, update `SCHEDULE_DAY_NOTES["2026-08-28"][0].rows` in `index.html` accordingly.
+⚠️ **Possible follow-up needed (from 2026-08-24, still open):** the `2026-08-28` departure card's `수원 출발` time changed from `06:30~06:40` to `07:10`, but the downstream rows (`07:50~08:10 인천공항 주차장 도착` etc.) were intentionally left unchanged since only the departure time and a note phrase were explicitly requested. A ~40–70 minute Suwon-to-Incheon-airport drive is tight with the new departure time; if the user wants the rest of the timeline shifted later to match, update `SCHEDULE_DAY_NOTES["2026-08-28"][0].rows` in `index.html` accordingly.
 
 ⚠️ **Action needed (still open from `8c36e0d`):** the custom checklist item feature added a new Firestore path (`tripData/checklistCustom/items`) and updated `firestore.rules` to allow it, but rules are still not deployed to production (see Firestore Security Rules section). Until `firebase deploy --only firestore:rules` is run, whether add/delete/check on custom items works depends on whatever rules are currently live on the `spain-trip-3006a` project — if production is still on permissive/test-mode rules it will work; if a stricter rule set without this path is live, custom item writes will fail with a permission error. Deploy the rules to be sure.
 
@@ -129,7 +129,7 @@ Current UI:
 - daily accommodation link shown beside dates where a hotel is assigned
 - changeover days display as `숙소1 -> 숙소2`
 - accommodation booking card: for a date that matches an `ACCOMMODATION_BOOKINGS` entry's `checkin` field, the full booking card (breakfast badge, rows, note) renders right under that date's header — moved here from the checklist tab in commit `9458e6d`. Display-only, driven by `ACCOMMODATION_BOOKINGS_BY_CHECKIN`.
-- `SCHEDULE_DAY_NOTES` (client constant, display-only): keyed by `YYYY-MM-DD`, each value is an **array** of reference cards rendered under that date's header, above that date's Firestore-backed items. Not read from or written to Firestore. Currently has entries for `2026-08-28` (2 cards) and `2026-08-29` (2 cards: the Mallorca transfer plan, then the Record Go rental car reservation + pickup guide).
+- `SCHEDULE_DAY_NOTES` (client constant, display-only): keyed by `YYYY-MM-DD`, each value is an **array** of reference cards rendered under that date's header, above that date's Firestore-backed items. Not read from or written to Firestore. Currently has entries for `2026-08-28` (2 cards), `2026-08-29` (2 cards: the Mallorca transfer plan, then the Record Go rental car reservation + pickup guide), and `2026-09-04` (2 cards: the 16-stop Barcelona sightseeing route, then Sagrada Familia entry tips).
 - **Booking card position within the day-note cards** (added in commit `6dc7416`): an `ACCOMMODATION_BOOKINGS` entry can set an optional `scheduleOrder` (integer) — the number of `SCHEDULE_DAY_NOTES` cards to render before inserting the booking card among them. Default (no `scheduleOrder`, or `0`) puts the booking card first, before all day notes. When there is no `checkinBooking` for a date, `SCHEDULE_DAY_NOTES` cards just render in their array order as before.
   - `Alberg Centre Esplai` sets `scheduleOrder: 2`, so on `2026-08-28` the order is: 인천공항 출발 계획 → 바르셀로나 공항 이동 → **[예약 카드]** (last, since there are only 2 day notes on this date).
   - `Gran Hotel Sóller` sets `scheduleOrder: 2` (added in commit `2dc355e`), so on `2026-08-29` the order is: 마요르카 이동 → Record Go 렌터카 → **[예약 카드]** (last, matching the day's actual timeline: airport transfer → rental car pickup → arrival at the hotel).
@@ -298,7 +298,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v11` (bumped for the 8/28 departure time update; `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v12` (bumped for the 9/4 schedule card; `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -704,6 +704,20 @@ Committed and pushed directly to `main`:
 - **Intentionally left unchanged:** the downstream rows (`07:50~08:10 인천공항 주차장 도착`, and everything after). Only the departure time and the bicycle-luggage phrase were explicitly requested. This does leave a tight ~40–70 minute implied drive window between the new `07:10` departure and the still-`07:50~08:10` arrival row — flagged to the user in chat; will need a follow-up edit to `SCHEDULE_DAY_NOTES["2026-08-28"][0].rows` if they want the rest of the timeline shifted later to match.
 - Bumped `sw.js` cache to `spain-trip-pwa-v11`.
 
+### 9/4 Barcelona Sightseeing Route and Sagrada Familia Entry Tips
+
+Committed and pushed directly to `main`:
+
+- `77b46e9 feat: add 9/4 Barcelona sightseeing route and Sagrada Familia entry tips`
+- `c6e3754 chore: bump PWA cache version to v12 for 9/4 schedule card`
+
+Added two new `SCHEDULE_DAY_NOTES["2026-09-04"]` cards, from user-supplied route-planning-app and blog screenshots:
+
+1. **"바르셀로나 관광 코스 (가우디 투어 + 고딕 지구)"** — a 16-stop walking route starting from Casp 74 Apartments: Casa Batlló → Casa Milà → Park Güell → Casa Angela (reservation 14:30) → Sagrada Familia (interior entry reservation 16:15) → Gràcia street → Plaça Catalunya → La Rambla → Boqueria market → Gothic Quarter → Barcelona Cathedral → Churrería Laietana → Palau de la Música Catalana → Arc de Triomf → El Glop Plaça Catalunya. Each row shows the stop number, the inter-stop walking distance from the source app (e.g. `2 (849m)`), the place name, category/neighborhood tags, and any notes carried over from the screenshot (e.g. `가우디투어 · 예약가능`, `이베리코항정살, 먹물빠에야 1인분가능, 꿀대구`).
+2. **"사그라다 파밀리아 입장 팁 (내부입장 16:15 예약)"** — dress code and entry requirements from the supplied blog tip: bring passport + ticket (screenshot OK), download the official app in advance via the confirmation email's link, no sleeveless/deep-cut/sheer tops, no short shorts/miniskirts above the knee, hats must come off inside, avoid worn-out shoes — with a note that non-compliant dress can block entry.
+
+No `link` field was set on either card since no reference URL was included in the supplied screenshots.
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -757,7 +771,8 @@ Latest local verification after adding accommodation booking info:
 - Casp 74 schedule card check: PASS, booking card now renders under `2026-09-03` in the `일정` tab with no code changes beyond adding the data
 - `scheduleOrder` splice logic check: PASS, simulated with `["A","B","C"]` and `scheduleOrder: 2` produces `["A","B","[booking]","C"]`; `2026-08-28` now renders 인천공항 출발 계획 → 바르셀로나 공항 이동 → 예약 카드 → 호텔 후기
 - `scheduleOrder` default/regression check: PASS, dates and bookings without `scheduleOrder` (`Gran Hotel Sóller`, `Meliá Palma Marina`, `Casp 74 Apartments`) still render their booking card before any day notes, unchanged from before this fix
-- service worker cache name check: PASS, `spain-trip-pwa-v11`
+- service worker cache name check: PASS, `spain-trip-pwa-v12`
+- 9/4 schedule card render check: PASS, both new `2026-09-04` cards (16-stop route, Sagrada Familia tips) render under the date header with all rows and notes
 - 8/28 departure time update check: PASS, `수원 출발` row shows `07:10`, bicycle-luggage phrase no longer present in the note
 - 8/29 card order check: PASS, `Gran Hotel Sóller` booking card now renders after both day-note cards (마요르카 이동, 렌터카 수령), matching the day's chronological order
 - shopping tab code presence check: PASS, `shoppingCollection`, `resetShoppingForm()`, `openShoppingForm()`, `closeShoppingForm()`, `renderShopping()`, `saveShoppingItem()`, `deleteShoppingItem()`, `loadShopping()` all present
