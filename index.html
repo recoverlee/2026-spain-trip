@@ -589,18 +589,29 @@ const SECTION_INFO_CARDS = {
 
 /* 체크리스트 섹션 하단에 표시되는 예약 카드 스타일 참고 정보 (섹션 제목이 key) */
 const SECTION_BOOKING_STYLE_CARDS = {
-  "✈️ 1. 항공": {
-    cardTitle: "바르셀로나 ↔ 팔마 마요르카 수하물 안내 (Air Europa 왕복)",
-    rows: [
-      ["탑승자", "3명 (성인 2 + 아동 1)"],
-      ["개인 소지품", "1명당 1개 · 4kg · 40×30×15cm 이내 · 앞좌석 아래 수납 (총 3개)"],
-      ["휴대 수하물", "1명당 1개 · 10kg · 55×35×25cm 이내 · 기내 반입 (총 3개)"],
-      ["위탁 수하물(기본)", "불포함 (이코노미 Lite 요금)"],
-      ["위탁 수하물(추가)", "재환 기준 1개당 23kg · 158cm(세 변의 합) 이내 · 왕복 각각 1개, 총 2개 · 추가 신청 완료"],
-      ["보유 캐리어", "74×47×31cm = 152cm (기준 이내)"]
-    ],
-    note: "수하물 크기에는 바퀴와 손잡이가 포함됩니다."
-  }
+  "✈️ 1. 항공": [
+    {
+      cardTitle: "바르셀로나 ↔ 팔마 마요르카 수하물 안내 (Air Europa 왕복)",
+      rows: [
+        ["탑승자", "3명 (성인 2 + 아동 1)"],
+        ["개인 소지품", "1명당 1개 · 4kg · 40×30×15cm 이내 · 앞좌석 아래 수납 (총 3개)"],
+        ["휴대 수하물", "1명당 1개 · 10kg · 55×35×25cm 이내 · 기내 반입 (총 3개)"],
+        ["위탁 수하물(기본)", "불포함 (이코노미 Lite 요금)"],
+        ["위탁 수하물(추가)", "재환 기준 1개당 23kg · 158cm(세 변의 합) 이내 · 왕복 각각 1개, 총 2개 · 추가 신청 완료"],
+        ["보유 캐리어", "74×47×31cm = 152cm (기준 이내)"]
+      ],
+      note: "수하물 크기에는 바퀴와 손잡이가 포함됩니다."
+    },
+    {
+      cardTitle: "Air Europa 수하물 반입 유의사항 (위험물)",
+      rows: [
+        ["기내 반입 가능", "전자담배, 보조배터리*, 카메라 등 전자기기, 여분 배터리*, 라이터·성냥"],
+        ["위탁 수하물만 가능", "에어로졸, 캠핑용 스토브*, 드라이아이스*, 총기·탄약*, 휘발유 사용 장비*, 스쿠버 탱크*"],
+        ["반입 전면 금지", "인화성 액체·가스, 폭죽, 부식성 화학물질/세제, 소형 리튬배터리 구동 이동수단, 생물학적 위험물·감염성 물질, 방사성 물질, 폭발물"]
+      ],
+      note: "* 표시 항목은 100Wh 이하 배터리만 가능(초과 시 반입 금지)하거나 항공사 직원에게 사전 문의가 필요합니다. 국가 및 국제 규정상 위험물은 체크인 시 반드시 신고해야 합니다."
+    }
+  ]
 };
 
 /* 일정 탭의 날짜 헤더 아래에 표시되는 참고 정보 카드 (날짜가 key, 표시 전용, Firestore와 무관) */
@@ -1115,8 +1126,8 @@ function renderChecklist() {
     const sectionInfo = SECTION_INFO_CARDS[section[0]];
     if (sectionInfo) sec.appendChild(createTransitCard(sectionInfo));
 
-    const bookingStyleInfo = SECTION_BOOKING_STYLE_CARDS[section[0]];
-    if (bookingStyleInfo) sec.appendChild(createBookingCard(bookingStyleInfo));
+    const bookingStyleCards = SECTION_BOOKING_STYLE_CARDS[section[0]] || [];
+    bookingStyleCards.forEach(cardInfo => sec.appendChild(createBookingCard(cardInfo)));
 
     customChecklistItems
       .filter(custom => custom.category === section[0])
