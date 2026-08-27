@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (Air Europa UX6007 boarding pass card added to 8/29 schedule; cache v14)
+Last updated: 2026-08-24 (fixed restore/uncheck-all Firestore bug; removed BCN airport storage from checklist, count now 113; cache v15)
 
 ## Project Overview
 
@@ -19,7 +19,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `fd8a95e chore: bump PWA cache version to v14 for boarding pass card`
+- `8902305 chore: bump PWA cache version to v15 for restore bug fix and checklist item removal`
 
 ⚠️ **Possible follow-up needed (from 2026-08-24, still open):** the `2026-08-28` departure card's `수원 출발` time changed from `06:30~06:40` to `07:10`, but the downstream rows (`07:50~08:10 인천공항 주차장 도착` etc.) were intentionally left unchanged since only the departure time and a note phrase were explicitly requested. A ~40–70 minute Suwon-to-Incheon-airport drive is tight with the new departure time; if the user wants the rest of the timeline shifted later to match, update `SCHEDULE_DAY_NOTES["2026-08-28"][0].rows` in `index.html` accordingly.
 
@@ -69,7 +69,7 @@ Document fields:
 
 Important compatibility note:
 
-- Checklist item count is now `119` (was `118` through `d0c2a4d`).
+- Checklist item count is now `113` (was `119` through `4a6cf71`, and `118` through `d0c2a4d`).
 - Checklist item count was previously preserved to protect existing Firestore checkbox keys. As of `425b7ee`, a new leaf item (`바르셀로나 공항 택시/버스 이용법`, a link-only reference item) was appended at the end of the `🗺️ 8. 이동` section, which is not the end of the whole checklist, so it shifts flattened indexes for all later sections.
 - When checklist text is intentionally corrected, keep the flattened item count stable unless a key migration is planned, or accept and document the drift as done here.
 
@@ -99,6 +99,13 @@ Known index drift at `425b7ee`:
 - Total item count grew from `118` to `119`.
 - Every flattened index from `97` onward shifted by `+1` relative to before this change. This affects the remaining items in `🗺️ 8. 이동` after index 97 (none, since it was appended last) and all items in `🩹 9. 개인용품` and `🔐 10. 출국 직전`.
 - Any `state` or `checkedBy` values already stored for indexes `97` and above now apply to a different item one position later, so checked items in those two sections should be reviewed and re-checked in the app if needed.
+
+Known index drift at `681082d`:
+
+- Removed the entire `🧳 4. 짐 → BCN 공항에 보관` subsection (4 items: `28인치 캐리어 1개`, `8/29(토)~9/3(목) 공항 보관서비스 위치 확인`, `보관비용 확인`, `9/3(목) BCN 도착 후 수령 방법 확인` — old flattened indexes `38`–`41`), since the plan to store luggage at BCN airport was dropped.
+- Also removed `BCN T1 수하물 보관 위치 확인` (old index `90`) and `BCN 도착 후 보관짐 수령` (old index `94`) from `🗺️ 8. 이동`.
+- Total item count dropped from `119` to `113` (6 items removed). Every flattened index from the old index `38` onward shifted down by up to `6` positions (the exact shift depends on how many of the 6 removed indexes precede a given item).
+- Any `state`/`checkedBy`/`hiddenKeys` values already stored for old indexes `38` and above now apply to a **different, unrelated item** at the same numeric key. Recommend both users review their checked/hidden state across the whole checklist after this update, not just a specific range, since the shift is non-uniform (some items shift by 4, others by 6, depending on position relative to both removed blocks).
 
 ### Schedule
 
@@ -240,9 +247,14 @@ Static (built-in) checklist items cannot be truly deleted without corrupting oth
 
 Implementation notes:
 
-- `totalStaticSlots` counts every static leaf item regardless of hidden state (i.e. the true flattened count, currently `119`); `totalStaticItems`/`totalItems` count only currently-visible (non-hidden) items and drive the progress bar.
+- `totalStaticSlots` counts every static leaf item regardless of hidden state (i.e. the true flattened count, currently `113`); `totalStaticItems`/`totalItems` count only currently-visible (non-hidden) items and drive the progress bar.
 - `checkAll()` iterates `0..totalStaticSlots-1` and skips any key present in `hiddenKeys`, so hidden items are never force-checked and the presence of hidden items earlier in the list no longer shifts which keys get checked.
-- `uncheckAll()` is unaffected (it clears `state`/`checkedBy` to `{}` entirely).
+- `uncheckAll()` clears `state`/`checkedBy` to `{}` via `updateDoc()` (not `setDoc(...,{merge:true})` — see the bug fix note immediately below for why that distinction matters).
+
+**Bug fixed in commit `681082d`:** restoring a hidden item (`복원`) previously did not persist — the item would come back after the next Firestore sync. Root cause: `setStaticItemHidden()` deleted the key from the local `hiddenKeys` object, then wrote the whole (now-smaller) object via `setDoc(checklistRef, {hiddenKeys}, {merge:true})`. Firestore's `merge:true` recursively merges nested map fields but never removes a key that is simply absent from the payload — the server-side `hiddenKeys.<key>` value was left untouched, so the next `onSnapshot` update brought the "hidden" flag right back. Fixed by sending `{ hiddenKeys: { [key]: deleteField() } }` instead, which explicitly deletes just that nested field. The same root cause affected two other spots, fixed at the same time:
+- `toggleItem()`: unchecking an item deleted `checkedBy[key]` locally but re-sent the whole map via merge, so the stale `checkedBy` entry was never actually removed from Firestore (harmless in the UI, since the badge only displays when `state[key]` is also true, but it left orphaned data). Now uses `{ checkedBy: { [key]: deleteField() } }` when unchecking.
+- `uncheckAll()`: sent `state: {}, checkedBy: {}` via `setDoc(...,{merge:true})` — an empty object merges nothing, so this was very likely a **no-op against already-stored data**, meaning `전체 미완료` may not have been actually clearing anyone's checked state before this fix. Switched to `updateDoc(checklistRef, {state:{}, checkedBy:{}, ...})`, which replaces those fields outright (unlike `setDoc`+merge, `updateDoc` does not recursively merge a provided object into an existing map — it replaces the field), while leaving `hiddenKeys` and other fields untouched.
+- Added `deleteField` to the `firebase-firestore.js` imports to support all three fixes.
 
 ## Firestore Security Rules
 
@@ -298,7 +310,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v14` (bumped for the Air Europa UX6007 boarding pass card; `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v15` (bumped for the restore bug fix and BCN storage checklist removal; `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -747,6 +759,22 @@ Added a new `SCHEDULE_DAY_NOTES["2026-08-29"]` card, from 3 user-supplied Air Eu
 - **Deliberately did not attempt to reproduce the QR codes from the screenshots.** A QR code photographed from a screen can't be reliably re-encoded into a working scannable image without the underlying boarding-pass data, and a broken/fake QR at the gate would be worse than no QR at all. The note field instead tells the user to open the real digital boarding pass (with its live QR) from the Air Europa app or confirmation email at the airport, and that this card is reference info only.
 - Since a 3rd day-note card was added ahead of the existing `Record Go 렌터카` card, `Gran Hotel Sóller`'s `scheduleOrder` was bumped from `2` to `3` (`ACCOMMODATION_BOOKINGS` entry, check-in `2026-08-29`) so its booking card still renders last, after all 3 day notes, preserving the chronological order fixed earlier (see "Gran Hotel Sóller Card Reordered for Chronological Order" above). Verified by simulating the splice logic: `["마요르카 이동","탑승권 정보","렌터카 수령"]` with `scheduleOrder: 3` inserts the booking card at the end, as intended.
 
+### Restore Bug Fix and BCN Airport Storage Removal
+
+Committed and pushed directly to `main`:
+
+- `681082d fix: restore/uncheck-all Firestore bug; remove BCN airport luggage storage from checklist`
+- `8902305 chore: bump PWA cache version to v15 for restore bug fix and checklist item removal`
+
+Two changes, reported together by the user and fixed/applied in the same commit:
+
+**Bug fix** — see the "Bug fixed in commit `681082d`" note under "Edit Mode and Static Item Hide/Restore" above for the full root-cause writeup. Summary: `setDoc(...,{merge:true})` cannot remove keys from a nested map field (`hiddenKeys`, `checkedBy`) by simply omitting them from the payload — it only merges what's present. Fixed `setStaticItemHidden()` (restore) and `toggleItem()` (uncheck) to use `deleteField()` for the specific key being removed, and switched `uncheckAll()` from a merge-with-empty-objects `setDoc` (a no-op against existing data — likely meaning `전체 미완료` wasn't actually working before this fix either) to `updateDoc()`, which replaces the specified fields outright.
+
+**Content change** — removed the BCN airport luggage storage plan from the checklist, since it was dropped in favor of not storing bags there:
+- Removed `🧳 4. 짐 → BCN 공항에 보관` entirely (4 items).
+- Removed `BCN T1 수하물 보관 위치 확인` and `BCN 도착 후 보관짐 수령` from `🗺️ 8. 이동` (2 items).
+- Flattened checklist count: `119` → `113`. See "Known index drift at `681082d`" in the Firebase Data Model section above — the shift is non-uniform (4 or 6 positions depending on where an item sits relative to both removed blocks), so both users should review their checked/hidden state across the whole checklist, not just a specific range.
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -800,7 +828,11 @@ Latest local verification after adding accommodation booking info:
 - Casp 74 schedule card check: PASS, booking card now renders under `2026-09-03` in the `일정` tab with no code changes beyond adding the data
 - `scheduleOrder` splice logic check: PASS, simulated with `["A","B","C"]` and `scheduleOrder: 2` produces `["A","B","[booking]","C"]`; `2026-08-28` now renders 인천공항 출발 계획 → 바르셀로나 공항 이동 → 예약 카드 → 호텔 후기
 - `scheduleOrder` default/regression check: PASS, dates and bookings without `scheduleOrder` (`Gran Hotel Sóller`, `Meliá Palma Marina`, `Casp 74 Apartments`) still render their booking card before any day notes, unchanged from before this fix
-- service worker cache name check: PASS, `spain-trip-pwa-v14`
+- service worker cache name check: PASS, `spain-trip-pwa-v15`
+- checklist item count check: PASS, flattened count is now `113` (was `119`), confirmed via a Node script parsing the `data` array
+- BCN storage removal check: PASS, no remaining `BCN 공항에 보관`/`공항 보관서비스`/`BCN T1 수하물 보관` references in `index.html`; unrelated `카드... 보관` (card storage) items untouched
+- `deleteField()` restore fix check: PASS (code review — not live-tested against production Firestore, per the no-live-write policy); `setStaticItemHidden()` now sends `{ hiddenKeys: { [key]: deleteField() } }` on restore instead of the full mutated object
+- `uncheckAll()` fix check: PASS (code review), now uses `updateDoc()` instead of `setDoc(...,{merge:true})` with empty objects
 - boarding pass card order check: PASS, `2026-08-29` renders 마요르카 이동 → 탑승권 정보 → 렌터카 수령 → Gran Hotel Sóller 예약 카드, matching the simulated splice output
 - `SECTION_BOOKING_STYLE_CARDS` array refactor regression check: PASS, `✈️ 1. 항공` renders both cards (baggage size/weight, then dangerous goods) in order; other sections with no entry render nothing extra, same as before
 - 9/4 schedule card render check: PASS, both new `2026-09-04` cards (16-stop route, Sagrada Familia tips) render under the date header with all rows and notes
@@ -829,6 +861,8 @@ Recommended next steps:
 10. Get the exact Aena Barcelona-El Prat airport info URL from the user and add it as a `link` on the `2026-08-29` Mallorca transfer schedule card.
 11. Test adding, editing, and deleting a shopping item with both allowed accounts in the production app, and confirm clicking a saved title opens the link in a new tab as intended.
 12. Confirm with the user whether the `2026-08-28` departure card's downstream timeline (인천공항 도착, 체크인, 출국심사, etc.) should shift later to match the new `07:10` departure time, or whether the ~40–70 minute drive window is intentional as-is.
+13. **High priority:** with both allowed accounts in the production app, test hiding a static checklist item, restoring it, unchecking a checked item, and using `전체 미완료`, to confirm the `deleteField()` fix actually resolves the reported bugs against live Firestore (only code-reviewed so far, not live-tested, per the no-live-write policy during this session).
+14. Since the checklist item count changed again (`119` → `113`), both users should open the checklist tab and review their checked/hidden items across the whole list — the index shift from this change is non-uniform, unlike prior single-block shifts.
 
 Potential future improvements:
 
