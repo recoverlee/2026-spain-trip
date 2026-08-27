@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (fixed restore/uncheck-all Firestore bug; removed BCN airport storage from checklist, count now 113; cache v15)
+Last updated: 2026-08-24 (Mallorca luggage plan updated to 3 carriers + 1 extra bag, count now 114; cache v16)
 
 ## Project Overview
 
@@ -19,7 +19,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `8902305 chore: bump PWA cache version to v15 for restore bug fix and checklist item removal`
+- `e7d9f49 chore: bump PWA cache version to v16 for Mallorca luggage update`
 
 ⚠️ **Possible follow-up needed (from 2026-08-24, still open):** the `2026-08-28` departure card's `수원 출발` time changed from `06:30~06:40` to `07:10`, but the downstream rows (`07:50~08:10 인천공항 주차장 도착` etc.) were intentionally left unchanged since only the departure time and a note phrase were explicitly requested. A ~40–70 minute Suwon-to-Incheon-airport drive is tight with the new departure time; if the user wants the rest of the timeline shifted later to match, update `SCHEDULE_DAY_NOTES["2026-08-28"][0].rows` in `index.html` accordingly.
 
@@ -69,7 +69,7 @@ Document fields:
 
 Important compatibility note:
 
-- Checklist item count is now `113` (was `119` through `4a6cf71`, and `118` through `d0c2a4d`).
+- Checklist item count is now `114` (was `113` through `681082d`, `119` through `4a6cf71`, and `118` through `d0c2a4d`).
 - Checklist item count was previously preserved to protect existing Firestore checkbox keys. As of `425b7ee`, a new leaf item (`바르셀로나 공항 택시/버스 이용법`, a link-only reference item) was appended at the end of the `🗺️ 8. 이동` section, which is not the end of the whole checklist, so it shifts flattened indexes for all later sections.
 - When checklist text is intentionally corrected, keep the flattened item count stable unless a key migration is planned, or accept and document the drift as done here.
 
@@ -106,6 +106,12 @@ Known index drift at `681082d`:
 - Also removed `BCN T1 수하물 보관 위치 확인` (old index `90`) and `BCN 도착 후 보관짐 수령` (old index `94`) from `🗺️ 8. 이동`.
 - Total item count dropped from `119` to `113` (6 items removed). Every flattened index from the old index `38` onward shifted down by up to `6` positions (the exact shift depends on how many of the 6 removed indexes precede a given item).
 - Any `state`/`checkedBy`/`hiddenKeys` values already stored for old indexes `38` and above now apply to a **different, unrelated item** at the same numeric key. Recommend both users review their checked/hidden state across the whole checklist after this update, not just a specific range, since the shift is non-uniform (some items shift by 4, others by 6, depending on position relative to both removed blocks).
+
+Known index drift at `c0905de`:
+
+- `🧳 4. 짐 → 마요르카로 가져갈 짐 → 20인치 캐리어 2개` (index `38`) reworded to `20인치 캐리어 3개`, same index, same meaning (label-only change, no drift for this one).
+- Added a new item `추가 대형 수하물 1개` immediately after it, as index `39` (pushing `백팩 3개` and everything after down by one).
+- Total item count grew from `113` to `114`. Every flattened index from `39` onward shifted by `+1`.
 
 ### Schedule
 
@@ -247,7 +253,7 @@ Static (built-in) checklist items cannot be truly deleted without corrupting oth
 
 Implementation notes:
 
-- `totalStaticSlots` counts every static leaf item regardless of hidden state (i.e. the true flattened count, currently `113`); `totalStaticItems`/`totalItems` count only currently-visible (non-hidden) items and drive the progress bar.
+- `totalStaticSlots` counts every static leaf item regardless of hidden state (i.e. the true flattened count, currently `114`); `totalStaticItems`/`totalItems` count only currently-visible (non-hidden) items and drive the progress bar.
 - `checkAll()` iterates `0..totalStaticSlots-1` and skips any key present in `hiddenKeys`, so hidden items are never force-checked and the presence of hidden items earlier in the list no longer shifts which keys get checked.
 - `uncheckAll()` clears `state`/`checkedBy` to `{}` via `updateDoc()` (not `setDoc(...,{merge:true})` — see the bug fix note immediately below for why that distinction matters).
 
@@ -310,7 +316,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v15` (bumped for the restore bug fix and BCN storage checklist removal; `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v16` (bumped for the Mallorca luggage plan update; `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -775,6 +781,17 @@ Two changes, reported together by the user and fixed/applied in the same commit:
 - Removed `BCN T1 수하물 보관 위치 확인` and `BCN 도착 후 보관짐 수령` from `🗺️ 8. 이동` (2 items).
 - Flattened checklist count: `119` → `113`. See "Known index drift at `681082d`" in the Firebase Data Model section above — the shift is non-uniform (4 or 6 positions depending on where an item sits relative to both removed blocks), so both users should review their checked/hidden state across the whole checklist, not just a specific range.
 
+### Mallorca Luggage Plan Update (3 Carriers + 1 Extra Bag)
+
+Committed and pushed directly to `main`:
+
+- `c0905de feat: update Mallorca luggage plan to 3 carriers + 1 extra large bag`
+- `e7d9f49 chore: bump PWA cache version to v16 for Mallorca luggage update`
+
+- `🧳 4. 짐 → 마요르카로 가져갈 짐 → 20인치 캐리어 2개` (index `38`) reworded to `20인치 캐리어 3개` — same index, no drift for this label change alone.
+- Added a new item `추가 대형 수하물 1개` right after it, as index `39`.
+- Flattened checklist count: `113` → `114`. See "Known index drift at `c0905de`" in the Firebase Data Model section above — every index from `39` onward shifts by `+1`.
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -828,7 +845,8 @@ Latest local verification after adding accommodation booking info:
 - Casp 74 schedule card check: PASS, booking card now renders under `2026-09-03` in the `일정` tab with no code changes beyond adding the data
 - `scheduleOrder` splice logic check: PASS, simulated with `["A","B","C"]` and `scheduleOrder: 2` produces `["A","B","[booking]","C"]`; `2026-08-28` now renders 인천공항 출발 계획 → 바르셀로나 공항 이동 → 예약 카드 → 호텔 후기
 - `scheduleOrder` default/regression check: PASS, dates and bookings without `scheduleOrder` (`Gran Hotel Sóller`, `Meliá Palma Marina`, `Casp 74 Apartments`) still render their booking card before any day notes, unchanged from before this fix
-- service worker cache name check: PASS, `spain-trip-pwa-v15`
+- service worker cache name check: PASS, `spain-trip-pwa-v16`
+- Mallorca luggage update check: PASS, flattened count is now `114` (was `113`), confirmed via a Node script parsing the `data` array; `20인치 캐리어 3개` and `추가 대형 수하물 1개` both present at indexes `38`/`39`
 - checklist item count check: PASS, flattened count is now `113` (was `119`), confirmed via a Node script parsing the `data` array
 - BCN storage removal check: PASS, no remaining `BCN 공항에 보관`/`공항 보관서비스`/`BCN T1 수하물 보관` references in `index.html`; unrelated `카드... 보관` (card storage) items untouched
 - `deleteField()` restore fix check: PASS (code review — not live-tested against production Firestore, per the no-live-write policy); `setStaticItemHidden()` now sends `{ hiddenKeys: { [key]: deleteField() } }` on restore instead of the full mutated object
