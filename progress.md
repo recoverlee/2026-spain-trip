@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (9/4 Barcelona sightseeing route + Sagrada Familia tips added; cache v12)
+Last updated: 2026-08-24 (Air Europa dangerous goods card added; cache v13)
 
 ## Project Overview
 
@@ -19,7 +19,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `c6e3754 chore: bump PWA cache version to v12 for 9/4 schedule card`
+- `ad296b0 chore: bump PWA cache version to v13 for Air Europa dangerous goods card`
 
 ⚠️ **Possible follow-up needed (from 2026-08-24, still open):** the `2026-08-28` departure card's `수원 출발` time changed from `06:30~06:40` to `07:10`, but the downstream rows (`07:50~08:10 인천공항 주차장 도착` etc.) were intentionally left unchanged since only the departure time and a note phrase were explicitly requested. A ~40–70 minute Suwon-to-Incheon-airport drive is tight with the new departure time; if the user wants the rest of the timeline shifted later to match, update `SCHEDULE_DAY_NOTES["2026-08-28"][0].rows` in `index.html` accordingly.
 
@@ -298,7 +298,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v12` (bumped for the 9/4 schedule card; `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v13` (bumped for the Air Europa dangerous goods card; `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -477,9 +477,9 @@ Committed and pushed directly to `main`:
 
 - `48b951a feat: add BCN-PMI round trip baggage info card to 항공 checklist section`
 
-- Added `SECTION_BOOKING_STYLE_CARDS`, a second generic map keyed by checklist section title, rendered with `createBookingCard()` (the booking-card look, reused for non-accommodation reference info).
+- Added `SECTION_BOOKING_STYLE_CARDS`, a second generic map keyed by checklist section title, rendered with `createBookingCard()` (the booking-card look, reused for non-accommodation reference info). **As of commit `6b34a3f`, each key's value is an array of cards** (originally a single card object; refactored the same way `SCHEDULE_DAY_NOTES` was, to allow more than one reference card per checklist section) — see the "Air Europa Dangerous Goods Card" entry further down.
 - Generalized `createBookingCard()` to accept an optional `cardTitle` field; falls back to `예약 정보` when absent, so existing `ACCOMMODATION_BOOKINGS` cards are unaffected.
-- `renderChecklist()` now also appends a `SECTION_BOOKING_STYLE_CARDS` card after a section's items and after any `SECTION_INFO_CARDS` transit card, if one exists for that section.
+- `renderChecklist()` now also appends every `SECTION_BOOKING_STYLE_CARDS` card (in array order) after a section's items and after any `SECTION_INFO_CARDS` transit card, if any exist for that section.
 - Entered Air Europa BCN ↔ PMI round-trip baggage rules for 3 passengers (성인 2 + 아동 1): personal item (4kg, 40×30×15cm, ×3), cabin bag (10kg, 55×35×25cm, ×3), checked bag not included in the base Economy Lite fare, and 2 extra checked bags already purchased (23kg, 158cm combined dimensions each, one per direction for 재환) with the owned suitcase size noted as within limits (74×47×31cm = 152cm).
 - This card is display-only, same pattern as `ACCOMMODATION_BOOKINGS` and the transit ticket card; nothing is read from or written to Firestore.
 
@@ -718,6 +718,21 @@ Added two new `SCHEDULE_DAY_NOTES["2026-09-04"]` cards, from user-supplied route
 
 No `link` field was set on either card since no reference URL was included in the supplied screenshots.
 
+### Air Europa Dangerous Goods Card (항공 Checklist Section)
+
+Committed and pushed directly to `main`:
+
+- `6b34a3f feat: add Air Europa dangerous goods / carry-on guidance card to 항공 checklist section`
+- `ad296b0 chore: bump PWA cache version to v13 for Air Europa dangerous goods card`
+
+- Refactored `SECTION_BOOKING_STYLE_CARDS` from `{ sectionTitle: singleCardObject }` to `{ sectionTitle: [cardObject, ...] }`, mirroring the earlier `SCHEDULE_DAY_NOTES` array refactor, so a checklist section can show more than one booking-style reference card. `renderChecklist()` now does `(SECTION_BOOKING_STYLE_CARDS[section[0]] || []).forEach(...)` instead of rendering a single card.
+- Added a second card to `✈️ 1. 항공`, from a supplied Air Europa check-in screenshot ("Are your bags safe for take-off?"): "Air Europa 수하물 반입 유의사항 (위험물)".
+  - **기내 반입 가능**: e-cigarettes, power banks/spare batteries (under 100Wh only), electronic devices, lighters/matches.
+  - **위탁 수하물만 가능** (airline confirmation required, marked `*` in the source): aerosols, camp stoves, dry ice, firearms & ammunition, gasoline-powered equipment, scuba tanks.
+  - **반입 전면 금지**: flammable liquids/gases, fireworks, corrosive chemicals/household cleaners, small lithium-battery-operated vehicles, biohazard/infectious materials, radioactive products, explosives.
+  - Note covers the 100Wh battery limit and the requirement to declare dangerous goods at check-in per country/international regulations.
+- This card sits directly below the existing BCN↔PMI baggage size/weight card (added in commit `48b951a`) within the same `✈️ 1. 항공` section — both are display-only, unrelated to Firestore.
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -771,7 +786,8 @@ Latest local verification after adding accommodation booking info:
 - Casp 74 schedule card check: PASS, booking card now renders under `2026-09-03` in the `일정` tab with no code changes beyond adding the data
 - `scheduleOrder` splice logic check: PASS, simulated with `["A","B","C"]` and `scheduleOrder: 2` produces `["A","B","[booking]","C"]`; `2026-08-28` now renders 인천공항 출발 계획 → 바르셀로나 공항 이동 → 예약 카드 → 호텔 후기
 - `scheduleOrder` default/regression check: PASS, dates and bookings without `scheduleOrder` (`Gran Hotel Sóller`, `Meliá Palma Marina`, `Casp 74 Apartments`) still render their booking card before any day notes, unchanged from before this fix
-- service worker cache name check: PASS, `spain-trip-pwa-v12`
+- service worker cache name check: PASS, `spain-trip-pwa-v13`
+- `SECTION_BOOKING_STYLE_CARDS` array refactor regression check: PASS, `✈️ 1. 항공` renders both cards (baggage size/weight, then dangerous goods) in order; other sections with no entry render nothing extra, same as before
 - 9/4 schedule card render check: PASS, both new `2026-09-04` cards (16-stop route, Sagrada Familia tips) render under the date header with all rows and notes
 - 8/28 departure time update check: PASS, `수원 출발` row shows `07:10`, bicycle-luggage phrase no longer present in the note
 - 8/29 card order check: PASS, `Gran Hotel Sóller` booking card now renders after both day-note cards (마요르카 이동, 렌터카 수령), matching the day's chronological order
