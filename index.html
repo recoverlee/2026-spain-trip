@@ -514,7 +514,7 @@ const ACCOMMODATION_BOOKINGS = {
   "8/29(토)~8/31(월) — Gran Hotel Sóller": {
     hotelName: "Gran Hotel Sóller",
     checkin: "2026-08-29",
-    scheduleOrder: 2, // "마요르카 이동", "렌터카 수령" 카드 다음(맨 뒤)에 표시 — 시간 순서상 렌터카 수령 후 숙소 이동이므로
+    scheduleOrder: 3, // "마요르카 이동", "탑승권 정보", "렌터카 수령" 카드 다음(맨 뒤)에 표시 — 시간 순서상 렌터카 수령 후 숙소 이동이므로
     breakfast: "included",
     breakfastText: "조식 포함 (뷔페식)",
     rows: [
@@ -658,6 +658,21 @@ const SCHEDULE_DAY_NOTES = {
         ["🛫 출발", "08:40 BCN → PMI"]
       ],
       note: "TIP: 대중교통도 가능하지만 가족 3명 + 캐리어 기준으로는 택시를 추천. Air Europa는 BCN T1을 사용하며, 국내선/셍겐 노선이라도 추가 위탁수하물이 있으므로 06:30 전후 공항 도착을 목표로 여유 있게 이동. 특히 전날(8/28) 인천→바르셀로나 장거리 비행 직후 다음날 아침 8:40 비행이라, 06:10 숙소 출발로 여유 있게 준비하는 것이 좋음."
+    },
+    {
+      title: "Air Europa UX6007 탑승권 정보 (BCN → PMI)",
+      rows: [
+        ["편명", "UX6007 (Air Europa 운항)"],
+        ["구간", "BCN → PMI · Terminal 1"],
+        ["출발/도착", "08:40 → 09:25 (29 Aug)"],
+        ["🕐 탑승 시각", "07:55"],
+        ["게이트", "탑승 전 모니터에서 확인 (Check monitors)"],
+        ["좌석 등급", "Economy"],
+        ["탑승객 1", "JAEHWAN LEE · GROUP 3 · SEAT 22B"],
+        ["탑승객 2", "YEONHO LEE · GROUP 3 · SEAT 22C"],
+        ["탑승객 3", "HYELEE YI · GROUP 3 · SEAT 22A"]
+      ],
+      note: "각 탑승권에는 QR코드가 포함되어 있어, 실제 탑승 시에는 Air Europa 앱 또는 이메일에서 탑승권을 열어 QR코드를 스캔해야 합니다 (이 화면의 정보는 참고용이며 QR코드는 표시되지 않습니다). 탑승 시각(07:55)까지 게이트에 도착할 것."
     },
     {
       title: "Record Go 렌터카 예약 정보 및 수령 방법",
