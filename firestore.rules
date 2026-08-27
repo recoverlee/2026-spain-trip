@@ -2,7 +2,18 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // 읽기만 가능한 계정 포함 - 전체 허용 목록
     function isAllowedUser() {
+      return request.auth != null
+        && request.auth.token.email in [
+          "jhlee8379@gmail.com",
+          "sweetylove0116@gmail.com",
+          "yeonholee1024@gmail.com"
+        ];
+    }
+
+    // 쓰기(체크/추가/수정/삭제)가 가능한 계정 - 읽기 전용 계정은 제외
+    function isEditUser() {
       return request.auth != null
         && request.auth.token.email in [
           "jhlee8379@gmail.com",
@@ -11,11 +22,14 @@ service cloud.firestore {
     }
 
     match /trip/checklist {
-      allow read, write: if isAllowedUser();
+      allow read: if isAllowedUser();
+      allow write: if isEditUser();
     }
 
     match /tripData/{section}/items/{itemId} {
-      allow read, write: if isAllowedUser()
+      allow read: if isAllowedUser()
+        && section in ["schedule", "expenses", "checklistCustom", "shopping"];
+      allow write: if isEditUser()
         && section in ["schedule", "expenses", "checklistCustom", "shopping"];
     }
 

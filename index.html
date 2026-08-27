@@ -372,7 +372,7 @@
 </main>
 
 <div id="app" hidden></div>
-<footer>🔐 Google 로그인 후 체크 상태가 Firebase에 저장되며 재환·혜리 두 사람의 화면에 실시간으로 공유됩니다.</footer>
+<footer>🔐 Google 로그인 후 체크 상태가 Firebase에 저장되며 허용된 계정들의 화면에 실시간으로 공유됩니다. (연호 계정은 조회만 가능)</footer>
 </div>
 </div><!-- appContainer 끝 -->
 
@@ -426,8 +426,13 @@ const provider = new GoogleAuthProvider();
 
 const USERS = {
   "jhlee8379@gmail.com": "재환",
-  "sweetylove0116@gmail.com": "혜리"
+  "sweetylove0116@gmail.com": "혜리",
+  "yeonholee1024@gmail.com": "연호"
 };
+
+// 읽기 전용 계정: 로그인/조회는 가능하지만 체크·추가·수정·삭제 등 편집은 불가.
+// 실제 쓰기 차단은 firestore.rules에서도 강제되며, 아래는 UI 편의를 위한 것.
+const READ_ONLY_USERS = new Set(["yeonholee1024@gmail.com"]);
 
 const checklistRef = doc(db, "trip", "checklist");
 const scheduleCollection = collection(db, "tripData", "schedule", "items");
@@ -735,6 +740,7 @@ let expenses = [];
 let shoppingItems = [];
 let customChecklistItems = [];
 let currentUser = null;
+let isReadOnly = false;
 let editMode = false;
 let unsubscribeChecklist = null;
 let unsubscribeSchedule = null;
@@ -887,7 +893,7 @@ function renderAuthHeader() {
         font-weight:800;cursor:pointer;">
         🔐 Google 계정으로 로그인
       </button>
-      <span style="font-size:13px;opacity:.9;">재환 · 혜리 전용</span>
+      <span style="font-size:13px;opacity:.9;">재환 · 혜리 · 연호(읽기전용) 전용</span>
     `;
     document.getElementById("googleLoginBtn").onclick = async () => {
       try {
@@ -903,6 +909,7 @@ function renderAuthHeader() {
       <div style="font-size:14px;">
         <strong>👤 ${name}</strong>
         <span style="opacity:.8;"> · ${currentUser.email}</span>
+        ${isReadOnly ? `<span style="margin-left:6px;padding:2px 8px;background:#ffffff33;border-radius:999px;font-size:11px;font-weight:800;">👀 읽기 전용</span>` : ""}
       </div>
       <button id="logoutBtn"
         style="border:1px solid #ffffff66;background:#ffffff22;color:#fff;
@@ -1073,7 +1080,7 @@ function renderChecklist() {
           const cb = document.createElement("input");
           cb.type = "checkbox";
           cb.checked = !!state[key];
-          cb.disabled = !currentUser || isHidden;
+          cb.disabled = !currentUser || isReadOnly || isHidden;
 
           const content = document.createElement("span");
           content.style.flex = "1";
@@ -1109,7 +1116,7 @@ function renderChecklist() {
           if (editMode) {
             const toggleBtn = document.createElement("button");
             toggleBtn.type = "button";
-            toggleBtn.disabled = !currentUser;
+            toggleBtn.disabled = !currentUser || isReadOnly;
             if (isHidden) {
               toggleBtn.className = "restore-item-btn";
               toggleBtn.textContent = "복원";
@@ -1155,7 +1162,7 @@ function renderChecklist() {
         const cb = document.createElement("input");
         cb.type = "checkbox";
         cb.checked = !!custom.checked;
-        cb.disabled = !currentUser;
+        cb.disabled = !currentUser || isReadOnly;
 
         const content = document.createElement("span");
         content.style.flex = "1";
@@ -1184,7 +1191,7 @@ function renderChecklist() {
           deleteBtn.type = "button";
           deleteBtn.className = "delete-item-btn";
           deleteBtn.textContent = "삭제";
-          deleteBtn.disabled = !currentUser;
+          deleteBtn.disabled = !currentUser || isReadOnly;
           deleteBtn.addEventListener("click", event => {
             event.preventDefault();
             event.stopPropagation();
@@ -1206,13 +1213,13 @@ function renderChecklist() {
       const addInput = document.createElement("input");
       addInput.type = "text";
       addInput.placeholder = "새 항목 추가";
-      addInput.disabled = !currentUser;
+      addInput.disabled = !currentUser || isReadOnly;
       addInput.maxLength = 200;
 
       const addBtn = document.createElement("button");
       addBtn.type = "submit";
       addBtn.textContent = "+ 추가";
-      addBtn.disabled = !currentUser;
+      addBtn.disabled = !currentUser || isReadOnly;
 
       addRow.append(addInput, addBtn);
       addRow.addEventListener("submit", event => {
@@ -1233,7 +1240,7 @@ function renderChecklist() {
 }
 
 async function toggleItem(key, checked) {
-  if (!currentUser || isSyncing) return;
+  if (!currentUser || isReadOnly || isSyncing) return;
 
   state[key] = checked;
   if (checked) {
@@ -1262,7 +1269,7 @@ async function toggleItem(key, checked) {
 }
 
 async function setStaticItemHidden(key, hidden) {
-  if (!currentUser) return;
+  if (!currentUser || isReadOnly) return;
 
   if (hidden) {
     hiddenKeys[key] = true;
@@ -1374,7 +1381,7 @@ function loadCustomChecklistItems() {
 }
 
 async function addCustomChecklistItem(category, text) {
-  if (!currentUser) return;
+  if (!currentUser || isReadOnly) return;
   try {
     await addDoc(checklistCustomCollection, {
       category,
@@ -1394,7 +1401,7 @@ async function addCustomChecklistItem(category, text) {
 }
 
 async function toggleCustomChecklistItem(id, checked) {
-  if (!currentUser) return;
+  if (!currentUser || isReadOnly) return;
   const name = getDisplayName(currentUser.email);
   try {
     await updateDoc(doc(checklistCustomCollection, id), {
@@ -1410,7 +1417,7 @@ async function toggleCustomChecklistItem(id, checked) {
 }
 
 async function deleteCustomChecklistItem(id) {
-  if (!currentUser) return;
+  if (!currentUser || isReadOnly) return;
   if (!confirm("이 항목을 삭제할까요?")) return;
   try {
     await deleteDoc(doc(checklistCustomCollection, id));
@@ -1422,7 +1429,7 @@ async function deleteCustomChecklistItem(id) {
 }
 
 async function checkAll() {
-  if (!currentUser) return;
+  if (!currentUser || isReadOnly) return;
   const name = getDisplayName(currentUser.email);
   const nextState = {};
   const nextBy = {};
@@ -1454,8 +1461,8 @@ async function checkAll() {
 }
 
 async function uncheckAll() {
-  if (!currentUser) return;
-  if (!confirm("모든 체크를 해제할까요? 재환/혜리 모두의 체크 상태가 초기화됩니다.")) return;
+  if (!currentUser || isReadOnly) return;
+  if (!confirm("모든 체크를 해제할까요? 모든 사용자의 체크 상태가 초기화됩니다.")) return;
   const name = getDisplayName(currentUser.email);
 
   try {
@@ -1527,11 +1534,13 @@ function setActiveTab(tabName) {
 }
 
 function setDataControlsEnabled(enabled) {
+  // 읽기 전용 계정은 로그인은 되어 있어도(enabled=true) 편집 버튼은 계속 비활성화.
+  const canEdit = enabled && !isReadOnly;
   ["addScheduleBtn", "addExpenseBtn", "addShoppingBtn", "uncheckAllBtn", "checkAllBtn", "editModeBtn"].forEach(id => {
     const btn = document.getElementById(id);
-    if (btn) btn.disabled = !enabled;
+    if (btn) btn.disabled = !canEdit;
   });
-  if (!enabled) {
+  if (!canEdit) {
     editMode = false;
     updateEditModeBtn();
   }
@@ -1593,10 +1602,11 @@ function renderSchedule() {
           ${item.place ? `<div class="item-meta">${escapeHtml(item.place)}</div>` : ""}
           ${item.note ? `<div class="item-note">${escapeHtml(item.note)}</div>` : ""}
           ${item.link ? `<a class="item-link" href="${escapeAttribute(item.link)}" target="_blank" rel="noopener noreferrer">링크 열기</a>` : ""}
+          ${isReadOnly ? "" : `
           <div class="item-actions">
             <button class="mini-btn" data-schedule-edit="${item.id}">수정</button>
             <button class="mini-btn" data-schedule-delete="${item.id}">삭제</button>
-          </div>
+          </div>`}
         </div>
       </div>
     `).join("") : (dayNotes.length || checkinBooking) ? "" : `<div class="empty">등록된 일정이 없습니다.</div>`;
@@ -1662,7 +1672,7 @@ function renderSchedule() {
 
 async function saveSchedule(event) {
   event.preventDefault();
-  if (!currentUser) return;
+  if (!currentUser || isReadOnly) return;
 
   const id = document.getElementById("scheduleId").value;
   const payload = {
@@ -1696,7 +1706,7 @@ async function saveSchedule(event) {
 }
 
 async function deleteScheduleItem(id) {
-  if (!currentUser || !confirm("이 일정을 삭제할까요?")) return;
+  if (!currentUser || isReadOnly || !confirm("이 일정을 삭제할까요?")) return;
   try {
     await deleteDoc(doc(scheduleCollection, id));
     showStatus("일정이 삭제되었습니다.");
@@ -1796,17 +1806,18 @@ function renderExpenses() {
         <span class="tag">${escapeHtml(expense.category || "기타")}</span>
       </div>
       ${expense.note ? `<div class="item-note">${escapeHtml(expense.note)}</div>` : ""}
+      ${isReadOnly ? "" : `
       <div class="item-actions">
         <button class="mini-btn" data-expense-edit="${expense.id}">수정</button>
         <button class="mini-btn" data-expense-delete="${expense.id}">삭제</button>
-      </div>
+      </div>`}
     </div>
   `).join("");
 }
 
 async function saveExpense(event) {
   event.preventDefault();
-  if (!currentUser) return;
+  if (!currentUser || isReadOnly) return;
 
   const id = document.getElementById("expenseId").value;
   const payload = {
@@ -1839,7 +1850,7 @@ async function saveExpense(event) {
 }
 
 async function deleteExpenseItem(id) {
-  if (!currentUser || !confirm("이 지출을 삭제할까요?")) return;
+  if (!currentUser || isReadOnly || !confirm("이 지출을 삭제할까요?")) return;
   try {
     await deleteDoc(doc(expensesCollection, id));
     showStatus("지출이 삭제되었습니다.");
@@ -1884,17 +1895,18 @@ function renderShopping() {
     <div class="shopping-item">
       <a class="item-link" href="${escapeAttribute(item.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title)}</a>
       ${item.note ? `<div class="item-note">${escapeHtml(item.note)}</div>` : ""}
+      ${isReadOnly ? "" : `
       <div class="item-actions">
         <button class="mini-btn" data-shopping-edit="${item.id}">수정</button>
         <button class="mini-btn" data-shopping-delete="${item.id}">삭제</button>
-      </div>
+      </div>`}
     </div>
   `).join("");
 }
 
 async function saveShoppingItem(event) {
   event.preventDefault();
-  if (!currentUser) return;
+  if (!currentUser || isReadOnly) return;
 
   const id = document.getElementById("shoppingId").value;
   const payload = {
@@ -1924,7 +1936,7 @@ async function saveShoppingItem(event) {
 }
 
 async function deleteShoppingItem(id) {
-  if (!currentUser || !confirm("이 쇼핑 링크를 삭제할까요?")) return;
+  if (!currentUser || isReadOnly || !confirm("이 쇼핑 링크를 삭제할까요?")) return;
   try {
     await deleteDoc(doc(shoppingCollection, id));
     showStatus("쇼핑 링크가 삭제되었습니다.");
@@ -2057,6 +2069,7 @@ function clearSharedDataViews() {
   shoppingItems = [];
   customChecklistItems = [];
   editMode = false;
+  isReadOnly = false;
   updateEditModeBtn();
   appEl.innerHTML = "";
   renderSchedule();
@@ -2131,7 +2144,7 @@ onAuthStateChanged(auth, async user => {
     } catch (error) {
       console.error(error);
     }
-    showStatus("⛔ 이 여행 페이지는 재환과 혜리 계정만 사용할 수 있습니다.", "error");
+    showStatus("⛔ 이 여행 페이지는 허용된 계정만 사용할 수 있습니다.", "error");
     return;
   }
 
@@ -2140,18 +2153,21 @@ onAuthStateChanged(auth, async user => {
     clearSharedDataViews();
     renderAuthHeader();
     updateAuthUI();
-    showStatus("⛔ 이 여행 페이지는 재환과 혜리 계정만 사용할 수 있습니다.", "error");
+    showStatus("⛔ 이 여행 페이지는 허용된 계정만 사용할 수 있습니다.", "error");
     blockedUserSignOut = false;
     return;
   }
 
   currentUser = user;
+  isReadOnly = !!(user && READ_ONLY_USERS.has(user.email));
   renderAuthHeader();
   updateAuthUI();
   setDataControlsEnabled(!!user);
 
   if (user) {
-    showStatus(`☁️ ${getDisplayName(user.email)}님 로그인 완료`);
+    showStatus(isReadOnly
+      ? `👀 ${getDisplayName(user.email)}님 로그인 완료 (읽기 전용)`
+      : `☁️ ${getDisplayName(user.email)}님 로그인 완료`);
   }
 
   await loadChecklist();
