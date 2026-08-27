@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (Air Europa dangerous goods card added; cache v13)
+Last updated: 2026-08-24 (Air Europa UX6007 boarding pass card added to 8/29 schedule; cache v14)
 
 ## Project Overview
 
@@ -19,7 +19,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `ad296b0 chore: bump PWA cache version to v13 for Air Europa dangerous goods card`
+- `fd8a95e chore: bump PWA cache version to v14 for boarding pass card`
 
 ⚠️ **Possible follow-up needed (from 2026-08-24, still open):** the `2026-08-28` departure card's `수원 출발` time changed from `06:30~06:40` to `07:10`, but the downstream rows (`07:50~08:10 인천공항 주차장 도착` etc.) were intentionally left unchanged since only the departure time and a note phrase were explicitly requested. A ~40–70 minute Suwon-to-Incheon-airport drive is tight with the new departure time; if the user wants the rest of the timeline shifted later to match, update `SCHEDULE_DAY_NOTES["2026-08-28"][0].rows` in `index.html` accordingly.
 
@@ -129,7 +129,7 @@ Current UI:
 - daily accommodation link shown beside dates where a hotel is assigned
 - changeover days display as `숙소1 -> 숙소2`
 - accommodation booking card: for a date that matches an `ACCOMMODATION_BOOKINGS` entry's `checkin` field, the full booking card (breakfast badge, rows, note) renders right under that date's header — moved here from the checklist tab in commit `9458e6d`. Display-only, driven by `ACCOMMODATION_BOOKINGS_BY_CHECKIN`.
-- `SCHEDULE_DAY_NOTES` (client constant, display-only): keyed by `YYYY-MM-DD`, each value is an **array** of reference cards rendered under that date's header, above that date's Firestore-backed items. Not read from or written to Firestore. Currently has entries for `2026-08-28` (2 cards), `2026-08-29` (2 cards: the Mallorca transfer plan, then the Record Go rental car reservation + pickup guide), and `2026-09-04` (2 cards: the 16-stop Barcelona sightseeing route, then Sagrada Familia entry tips).
+- `SCHEDULE_DAY_NOTES` (client constant, display-only): keyed by `YYYY-MM-DD`, each value is an **array** of reference cards rendered under that date's header, above that date's Firestore-backed items. Not read from or written to Firestore. Currently has entries for `2026-08-28` (2 cards), `2026-08-29` (3 cards: the Mallorca transfer plan, the Air Europa UX6007 boarding pass info, then the Record Go rental car reservation + pickup guide), and `2026-09-04` (2 cards: the 16-stop Barcelona sightseeing route, then Sagrada Familia entry tips).
 - **Booking card position within the day-note cards** (added in commit `6dc7416`): an `ACCOMMODATION_BOOKINGS` entry can set an optional `scheduleOrder` (integer) — the number of `SCHEDULE_DAY_NOTES` cards to render before inserting the booking card among them. Default (no `scheduleOrder`, or `0`) puts the booking card first, before all day notes. When there is no `checkinBooking` for a date, `SCHEDULE_DAY_NOTES` cards just render in their array order as before.
   - `Alberg Centre Esplai` sets `scheduleOrder: 2`, so on `2026-08-28` the order is: 인천공항 출발 계획 → 바르셀로나 공항 이동 → **[예약 카드]** (last, since there are only 2 day notes on this date).
   - `Gran Hotel Sóller` sets `scheduleOrder: 2` (added in commit `2dc355e`), so on `2026-08-29` the order is: 마요르카 이동 → Record Go 렌터카 → **[예약 카드]** (last, matching the day's actual timeline: airport transfer → rental car pickup → arrival at the hotel).
@@ -298,7 +298,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v13` (bumped for the Air Europa dangerous goods card; `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v14` (bumped for the Air Europa UX6007 boarding pass card; `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -733,6 +733,20 @@ Committed and pushed directly to `main`:
   - Note covers the 100Wh battery limit and the requirement to declare dangerous goods at check-in per country/international regulations.
 - This card sits directly below the existing BCN↔PMI baggage size/weight card (added in commit `48b951a`) within the same `✈️ 1. 항공` section — both are display-only, unrelated to Firestore.
 
+### Air Europa UX6007 Boarding Pass Info (8/29 Schedule)
+
+Committed and pushed directly to `main`:
+
+- `c02bea4 feat: add Air Europa UX6007 boarding pass info card to 8/29 schedule`
+- `fd8a95e chore: bump PWA cache version to v14 for boarding pass card`
+
+Added a new `SCHEDULE_DAY_NOTES["2026-08-29"]` card, from 3 user-supplied Air Europa boarding pass screenshots (one per family member), inserted right after the existing "마요르카 이동" card and before "Record Go 렌터카": "Air Europa UX6007 탑승권 정보 (BCN → PMI)".
+
+- Flight `UX6007` (Air Europa), `BCN → PMI` via Terminal 1, `08:40 → 09:25` on 29 Aug, boarding time `07:55`, gate shown as "탑승 전 모니터에서 확인" (not yet assigned in the source), `Economy` class.
+- All 3 passengers with their boarding group/seat: `JAEHWAN LEE · GROUP 3 · SEAT 22B`, `YEONHO LEE · GROUP 3 · SEAT 22C`, `HYELEE YI · GROUP 3 · SEAT 22A`.
+- **Deliberately did not attempt to reproduce the QR codes from the screenshots.** A QR code photographed from a screen can't be reliably re-encoded into a working scannable image without the underlying boarding-pass data, and a broken/fake QR at the gate would be worse than no QR at all. The note field instead tells the user to open the real digital boarding pass (with its live QR) from the Air Europa app or confirmation email at the airport, and that this card is reference info only.
+- Since a 3rd day-note card was added ahead of the existing `Record Go 렌터카` card, `Gran Hotel Sóller`'s `scheduleOrder` was bumped from `2` to `3` (`ACCOMMODATION_BOOKINGS` entry, check-in `2026-08-29`) so its booking card still renders last, after all 3 day notes, preserving the chronological order fixed earlier (see "Gran Hotel Sóller Card Reordered for Chronological Order" above). Verified by simulating the splice logic: `["마요르카 이동","탑승권 정보","렌터카 수령"]` with `scheduleOrder: 3` inserts the booking card at the end, as intended.
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -786,7 +800,8 @@ Latest local verification after adding accommodation booking info:
 - Casp 74 schedule card check: PASS, booking card now renders under `2026-09-03` in the `일정` tab with no code changes beyond adding the data
 - `scheduleOrder` splice logic check: PASS, simulated with `["A","B","C"]` and `scheduleOrder: 2` produces `["A","B","[booking]","C"]`; `2026-08-28` now renders 인천공항 출발 계획 → 바르셀로나 공항 이동 → 예약 카드 → 호텔 후기
 - `scheduleOrder` default/regression check: PASS, dates and bookings without `scheduleOrder` (`Gran Hotel Sóller`, `Meliá Palma Marina`, `Casp 74 Apartments`) still render their booking card before any day notes, unchanged from before this fix
-- service worker cache name check: PASS, `spain-trip-pwa-v13`
+- service worker cache name check: PASS, `spain-trip-pwa-v14`
+- boarding pass card order check: PASS, `2026-08-29` renders 마요르카 이동 → 탑승권 정보 → 렌터카 수령 → Gran Hotel Sóller 예약 카드, matching the simulated splice output
 - `SECTION_BOOKING_STYLE_CARDS` array refactor regression check: PASS, `✈️ 1. 항공` renders both cards (baggage size/weight, then dangerous goods) in order; other sections with no entry render nothing extra, same as before
 - 9/4 schedule card render check: PASS, both new `2026-09-04` cards (16-stop route, Sagrada Familia tips) render under the date header with all rows and notes
 - 8/28 departure time update check: PASS, `수원 출발` row shows `07:10`, bicycle-luggage phrase no longer present in the note
