@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (Mallorca luggage plan updated to 3 carriers + 1 extra bag, count now 114; cache v16)
+Last updated: 2026-08-24 (added read-only account yeonholee1024@gmail.com; cache v17)
 
 ## Project Overview
 
@@ -19,7 +19,9 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `e7d9f49 chore: bump PWA cache version to v16 for Mallorca luggage update`
+- `275ab5f chore: bump PWA cache version to v17 for read-only account feature`
+
+⚠️ **Action needed (high priority):** the read-only account feature's actual security boundary is in `firestore.rules` (`isEditUser()` vs `isAllowedUser()`), which — like every other Firestore rules change this session — **has not been deployed to production**. Until `firebase deploy --only firestore:rules` is run, `yeonholee1024@gmail.com` may either (a) be unable to read anything if production is on some other restrictive rule set, or (b) worse, actually be able to write if production is still on permissive/test-mode rules. Deploy the rules before relying on the read-only restriction for anything sensitive.
 
 ⚠️ **Possible follow-up needed (from 2026-08-24, still open):** the `2026-08-28` departure card's `수원 출발` time changed from `06:30~06:40` to `07:10`, but the downstream rows (`07:50~08:10 인천공항 주차장 도착` etc.) were intentionally left unchanged since only the departure time and a note phrase were explicitly requested. A ~40–70 minute Suwon-to-Incheon-airport drive is tight with the new departure time; if the user wants the rest of the timeline shifted later to match, update `SCHEDULE_DAY_NOTES["2026-08-28"][0].rows` in `index.html` accordingly.
 
@@ -38,14 +40,15 @@ Historical note:
 
 ## Authorized Users
 
-Only these Google accounts are intended to use the app:
+Only these Google accounts are intended to use the app, as of commit `595aa40`:
 
-- `jhlee8379@gmail.com` -> 재환
-- `sweetylove0116@gmail.com` -> 혜리
+- `jhlee8379@gmail.com` -> 재환 (edit access)
+- `sweetylove0116@gmail.com` -> 혜리 (edit access)
+- `yeonholee1024@gmail.com` -> 연호 (**read-only** — can sign in and view every tab, but cannot check/hide/add/edit/delete anything)
 
-The client keeps the local display-name mapping in `USERS`.
+The client keeps the local display-name mapping in `USERS`, and the read-only subset in `READ_ONLY_USERS` (a `Set` of emails). The client computes a global `isReadOnly` flag in `onAuthStateChanged`, reset on logout via `clearSharedDataViews()`.
 
-Security must not rely on the client only. The new `firestore.rules` file also restricts Firestore access to the same two accounts.
+Security must not rely on the client only. `firestore.rules` is the actual enforcement boundary: `isAllowedUser()` (all 3 emails) gates `read`, while a separate `isEditUser()` (only the original 2 emails) gates `write`, on both `trip/checklist` and `tripData/{section}/items/{itemId}`. The client-side `isReadOnly` UI gating (disabled buttons, hidden 수정/삭제 controls, early-return guards in every write function) is purely for UX — a modified/malicious client could still attempt a write, and only the Firestore rules actually stop it. **As with every prior rules change this session, these rules are not yet deployed to production** — see Future Work Notes.
 
 ## Firebase Data Model
 
@@ -276,16 +279,19 @@ Firebase config file:
 firebase.json
 ```
 
-Current rules intent:
+Current rules intent (as of commit `595aa40`):
 
 - signed-in users only
-- only `jhlee8379@gmail.com` and `sweetylove0116@gmail.com`
-- allow `trip/checklist`
-- allow `tripData/schedule/items/{id}`
-- allow `tripData/expenses/items/{id}`
-- allow `tripData/checklistCustom/items/{id}` (added in commit `8c36e0d`, for the new custom checklist item feature)
-- allow `tripData/shopping/items/{id}` (added in commit `fe8a997`, for the new 쇼핑 tab)
+- **read**: `jhlee8379@gmail.com`, `sweetylove0116@gmail.com`, and `yeonholee1024@gmail.com` (`isAllowedUser()`)
+- **write**: only `jhlee8379@gmail.com` and `sweetylove0116@gmail.com` (`isEditUser()`) — `yeonholee1024@gmail.com` is read-only at the rules level, not just in the UI
+- allow read/write (subject to the above split) on `trip/checklist`
+- allow read/write (subject to the above split) on `tripData/schedule/items/{id}`
+- allow read/write (subject to the above split) on `tripData/expenses/items/{id}`
+- allow read/write (subject to the above split) on `tripData/checklistCustom/items/{id}` (added in commit `8c36e0d`, for the new custom checklist item feature)
+- allow read/write (subject to the above split) on `tripData/shopping/items/{id}` (added in commit `fe8a997`, for the new 쇼핑 tab)
 - deny all other document paths
+
+Prior to commit `595aa40`, `isAllowedUser()` covered both read and write for the same 2 emails (no read-only tier existed). The split into `isAllowedUser()`/`isEditUser()` was added specifically to support `yeonholee1024@gmail.com`'s read-only access — see Authorized Users above.
 
 Note:
 
@@ -316,7 +322,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v16` (bumped for the Mallorca luggage plan update; `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v17` (bumped for the read-only account feature; `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -792,6 +798,27 @@ Committed and pushed directly to `main`:
 - Added a new item `추가 대형 수하물 1개` right after it, as index `39`.
 - Flattened checklist count: `113` → `114`. See "Known index drift at `c0905de`" in the Firebase Data Model section above — every index from `39` onward shifts by `+1`.
 
+### Read-Only Account (yeonholee1024@gmail.com)
+
+Committed and pushed directly to `main`:
+
+- `595aa40 feat: add read-only account yeonholee1024@gmail.com`
+- `275ab5f chore: bump PWA cache version to v17 for read-only account feature`
+
+Added a third allowed account, `yeonholee1024@gmail.com` (display name `연호`), that can sign in and view every tab but cannot make any change — check/hide/add/edit/delete anything, or use `전체 완료`/`전체 미완료`/`항목 편집`.
+
+**Security boundary (the part that actually matters):** `firestore.rules` now has two functions instead of one — `isAllowedUser()` (all 3 emails, gates `read`) and `isEditUser()` (only the original 2 emails, gates `write`) — applied to both `trip/checklist` and `tripData/{section}/items/{itemId}`. This is enforced server-side regardless of what the client does. **Not yet deployed to production** (see the Current Git State warning above and Future Work Notes).
+
+**Client-side UX (does not by itself enforce anything — a modified client could bypass all of this):**
+- Added `yeonholee1024@gmail.com` to `USERS` (so it passes the existing allowed-account gate in `onAuthStateChanged` and can sign in) and to a new `READ_ONLY_USERS` `Set`.
+- New global `isReadOnly` flag, computed as `READ_ONLY_USERS.has(user.email)` in `onAuthStateChanged`, reset to `false` in `clearSharedDataViews()` on logout.
+- `setDataControlsEnabled(enabled)` now computes `canEdit = enabled && !isReadOnly` and disables `addScheduleBtn`/`addExpenseBtn`/`addShoppingBtn`/`uncheckAllBtn`/`checkAllBtn`/`editModeBtn` accordingly — a read-only user stays logged in (`enabled=true`) but these stay disabled.
+- Checklist: static item checkboxes (`cb.disabled`), the edit-mode 숨기기/복원 toggle button, custom item checkboxes and their 삭제 button, and the add-item form's input/button all also check `isReadOnly`. (Largely redundant with `editModeBtn` already being disabled — entering edit mode is unreachable for a read-only user through the UI — but kept as defense in depth.)
+- Schedule/Expense/Shopping list item templates now conditionally omit the `.item-actions` block (수정/삭제 buttons) entirely when `isReadOnly`, rather than rendering always-clickable buttons whose handlers silently no-op. Previously these buttons had no `disabled` gating at all — only the click-handler functions checked `currentUser`, so a read-only user (who wasn't a concept yet) would have seen fully interactive-looking buttons.
+- Every Firestore-writing function gained `|| isReadOnly` in its early-return guard: `toggleItem`, `setStaticItemHidden`, `checkAll`, `uncheckAll`, `addCustomChecklistItem`, `toggleCustomChecklistItem`, `deleteCustomChecklistItem`, `saveSchedule`, `deleteScheduleItem`, `saveExpense`, `deleteExpenseItem`, `saveShoppingItem`, `deleteShoppingItem`.
+- Added a `👀 읽기 전용` badge next to the display name in the header's `authBox` when `isReadOnly` is true.
+- Updated copy that previously named only 재환/혜리 to be generic: the blocked-user error message (`"⛔ 이 여행 페이지는 허용된 계정만 사용할 수 있습니다."`), the app footer, the header's pre-login subtitle (now lists all 3 names, marking 연호 read-only), and the `전체 미완료` confirm dialog.
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -845,7 +872,11 @@ Latest local verification after adding accommodation booking info:
 - Casp 74 schedule card check: PASS, booking card now renders under `2026-09-03` in the `일정` tab with no code changes beyond adding the data
 - `scheduleOrder` splice logic check: PASS, simulated with `["A","B","C"]` and `scheduleOrder: 2` produces `["A","B","[booking]","C"]`; `2026-08-28` now renders 인천공항 출발 계획 → 바르셀로나 공항 이동 → 예약 카드 → 호텔 후기
 - `scheduleOrder` default/regression check: PASS, dates and bookings without `scheduleOrder` (`Gran Hotel Sóller`, `Meliá Palma Marina`, `Casp 74 Apartments`) still render their booking card before any day notes, unchanged from before this fix
-- service worker cache name check: PASS, `spain-trip-pwa-v16`
+- service worker cache name check: PASS, `spain-trip-pwa-v17`
+- read-only code presence check: PASS, `READ_ONLY_USERS`, `isReadOnly`, and all listed `|| isReadOnly` guards present in `index.html`
+- read-only Firestore rules check: PASS (static review), `isEditUser()` correctly excludes `yeonholee1024@gmail.com`; `isAllowedUser()` includes all 3 emails
+- read-only Firestore rules deploy: NOT RUN, same standing limitation as all prior rules changes (no Firebase CLI in this environment) — **critical**, this is the actual security boundary and is not yet live
+- read-only live sign-in/permission test: NOT RUN, to avoid touching production data/auth during this session; needs manual verification by the user (see Future Work Notes)
 - Mallorca luggage update check: PASS, flattened count is now `114` (was `113`), confirmed via a Node script parsing the `data` array; `20인치 캐리어 3개` and `추가 대형 수하물 1개` both present at indexes `38`/`39`
 - checklist item count check: PASS, flattened count is now `113` (was `119`), confirmed via a Node script parsing the `data` array
 - BCN storage removal check: PASS, no remaining `BCN 공항에 보관`/`공항 보관서비스`/`BCN T1 수하물 보관` references in `index.html`; unrelated `카드... 보관` (card storage) items untouched
@@ -873,7 +904,7 @@ Recommended next steps:
 4. Confirm whether the `Casp 74 Apartments` self-parking fee (€28/day) was actually paid, and update the note if so — currently marked "지불 여부 미확인" based on the supplied confirmation screenshots.
 5. Test Schedule, Expense, and now Shopping CRUD with the two allowed Google accounts to ensure realtime sync works correctly.
 6. Confirm whether seed schedule items should be added automatically or entered manually in the app.
-7. **Deploy Firestore Rules after review.** They are still not deployed, so production Firestore is not yet protected by them, and the new custom checklist item and shopping tab features (`tripData/checklistCustom/items`, `tripData/shopping/items`) may not work until this is done. Use `firebase deploy --only firestore:rules` with Firebase CLI access.
+7. **Deploy Firestore Rules after review — now the highest-priority item.** They are still not deployed, so production Firestore is not yet protected by them: the custom checklist item and shopping tab features (`tripData/checklistCustom/items`, `tripData/shopping/items`) may not work, and — more importantly — **`yeonholee1024@gmail.com`'s read-only restriction is not actually enforced anywhere until this is deployed.** Use `firebase deploy --only firestore:rules` with Firebase CLI access.
 8. Test adding, checking, and deleting a custom checklist item with both allowed accounts in the production app; if it fails with a permission error, that confirms rules need deploying (see item 7).
 9. Test the checklist edit mode toggle, hiding a static item, and restoring it, in the production app with both allowed accounts, and confirm the progress bar total updates correctly when items are hidden.
 10. Get the exact Aena Barcelona-El Prat airport info URL from the user and add it as a `link` on the `2026-08-29` Mallorca transfer schedule card.
@@ -881,6 +912,8 @@ Recommended next steps:
 12. Confirm with the user whether the `2026-08-28` departure card's downstream timeline (인천공항 도착, 체크인, 출국심사, etc.) should shift later to match the new `07:10` departure time, or whether the ~40–70 minute drive window is intentional as-is.
 13. **High priority:** with both allowed accounts in the production app, test hiding a static checklist item, restoring it, unchecking a checked item, and using `전체 미완료`, to confirm the `deleteField()` fix actually resolves the reported bugs against live Firestore (only code-reviewed so far, not live-tested, per the no-live-write policy during this session).
 14. Since the checklist item count changed again (`119` → `113`), both users should open the checklist tab and review their checked/hidden items across the whole list — the index shift from this change is non-uniform, unlike prior single-block shifts.
+15. Have `yeonholee1024@gmail.com` sign in once the rules are deployed, and confirm: (a) all 4 tabs load and display data correctly, (b) every add/edit/delete/check control is genuinely disabled or hidden, (c) attempting a write (e.g. via browser dev tools calling the Firestore SDK directly, bypassing the UI) is rejected by the rules, not just the UI.
+16. Confirm with the user whether `연호`'s read-only access should ever be upgradable to edit access later (e.g. a simple move from `READ_ONLY_USERS` removal + `isEditUser()` rules update), or whether read-only is permanent for this account for the whole trip.
 
 Potential future improvements:
 
