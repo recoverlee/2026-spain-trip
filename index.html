@@ -403,6 +403,7 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  deleteField,
   onSnapshot,
   query,
   orderBy,
@@ -800,7 +801,6 @@ const data = [
 ["차량: Seat Arona 또는 동급"],["Full Coverage 확인"],["여권 준비"],["한국 운전면허증 준비"],["국제운전면허증 준비"],["결제 카드 준비"],["차량 인수 시 외관/휠/유리 사진 촬영"],["연료 상태 사진 촬영"],["차량 반납 시 사진 촬영"]
 ]],
 ["🧳 4. 짐", [
-["BCN 공항에 보관", [["28인치 캐리어 1개"],["8/29(토)~9/3(목) 공항 보관서비스 위치 확인"],["보관비용 확인"],["9/3(목) BCN 도착 후 수령 방법 확인"]]],
 ["마요르카로 가져갈 짐", [["20인치 캐리어 2개"],["백팩 3개"],["기내수하물 무게 측정"]]],
 ["의류", [["반팔 티셔츠 5~7장"],["반바지 3~4장"],["긴바지 1장"],["얇은 긴팔/셔츠 1~2장"],["얇은 바람막이/가디건 1장"],["속옷 6~7세트"],["양말 5~6켤레"],["잠옷"],["수영복 1~2벌"],["샌들/슬리퍼"],["편한 운동화"],["모자"],["선글라스"]]]
 ]],
@@ -814,7 +814,7 @@ const data = [
 ["발데모사 수도원/피아노 공연"],["Restaurante La Posada 13:00 예약 확인"],["드라크 동굴 예약시간 확인"],["사그라다 파밀리아 예약 확인"],["카사 바트요 예약 확인"],["카사 밀라 예약 확인"],["구엘공원 예약 확인"],["피카소 미술관 예약 확인"],["카탈루냐 음악당 예약 확인"],["FC Barcelona 관련 예약 확인"],["바르셀로나 동물원 예약 확인"]
 ]],
 ["🗺️ 8. 이동", [
-["8/28(금) BCN → Alberg Centre Esplai 이동방법 결정"],["8/29(토) 숙소 → BCN T1 이동방법 결정"],["BCN T1 수하물 보관 위치 확인"],["8/29(토) PMI 도착 → Record Go 이동방법 확인"],["9/3(목) 렌터카 08:00 반납"],["9/3(목) PMI → BCN 10:15 비행"],["BCN 도착 후 보관짐 수령"],["바르셀로나 대중교통 패스 종류 최종 결정"],["필요 시 Bolt/Uber 이용"],["바르셀로나 공항 택시/버스 이용법", "https://m.blog.naver.com/eudemonic005/224333827362"]
+["8/28(금) BCN → Alberg Centre Esplai 이동방법 결정"],["8/29(토) 숙소 → BCN T1 이동방법 결정"],["8/29(토) PMI 도착 → Record Go 이동방법 확인"],["9/3(목) 렌터카 08:00 반납"],["9/3(목) PMI → BCN 10:15 비행"],["바르셀로나 대중교통 패스 종류 최종 결정"],["필요 시 Bolt/Uber 이용"],["바르셀로나 공항 택시/버스 이용법", "https://m.blog.naver.com/eudemonic005/224333827362"]
 ]],
 ["🩹 9. 개인용품", [
 ["상비약"],["소화제"],["진통제"],["밴드"],["멀미약"],["선크림"],["보습제"],["세면도구"],["렌즈/안경"],["물티슈/휴지"],["아이 개인용품"]
@@ -1245,9 +1245,12 @@ async function toggleItem(key, checked) {
   renderChecklist();
 
   try {
+    // checkedBy는 중첩 맵 필드이므로, 체크 해제 시에는 deleteField()로 해당
+    // 키만 명시적으로 삭제해야 Firestore 문서에서도 실제로 지워진다. (state는
+    // 항상 boolean 값을 명시적으로 넣으므로 이 문제가 없다.)
     await setDoc(checklistRef, {
       state,
-      checkedBy,
+      checkedBy: { [key]: checked ? getDisplayName(currentUser.email) : deleteField() },
       updatedAt: serverTimestamp(),
       updatedBy: getDisplayName(currentUser.email)
     }, { merge: true });
@@ -1270,8 +1273,12 @@ async function setStaticItemHidden(key, hidden) {
   renderChecklist();
 
   try {
+    // hiddenKeys는 중첩 맵 필드라서, merge:true로 객체를 통째로 보내면
+    // Firestore가 누락된 키를 알아서 지워주지 않고 기존 값과 병합만 한다.
+    // 복원(hidden=false) 시에는 반드시 deleteField()로 해당 키만 명시적으로
+    // 삭제해야 Firestore 문서에서도 실제로 제거된다.
     await setDoc(checklistRef, {
-      hiddenKeys,
+      hiddenKeys: { [key]: hidden ? true : deleteField() },
       updatedAt: serverTimestamp(),
       updatedBy: getDisplayName(currentUser.email)
     }, { merge: true });
@@ -1452,12 +1459,16 @@ async function uncheckAll() {
   const name = getDisplayName(currentUser.email);
 
   try {
-    await setDoc(checklistRef, {
+    // setDoc(..., {merge:true})로 빈 객체({})를 보내면 병합할 내용이 없어서
+    // Firestore에 저장된 기존 state/checkedBy 값이 전혀 지워지지 않는다.
+    // updateDoc은 지정한 필드를 통째로 교체하므로 완전히 비울 수 있고,
+    // hiddenKeys 등 다른 필드는 그대로 유지된다.
+    await updateDoc(checklistRef, {
       state: {},
       checkedBy: {},
       updatedAt: serverTimestamp(),
       updatedBy: name
-    }, { merge: true });
+    });
     await Promise.all(customChecklistItems.map(item => updateDoc(doc(checklistCustomCollection, item.id), {
       checked: false,
       checkedBy: null,
