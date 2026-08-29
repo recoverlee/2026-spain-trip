@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-24 (added read-only account yeonholee1024@gmail.com; cache v17)
+Last updated: 2026-08-29 (Air Europa UX6007 8/29 flight delay reflected; cache v18)
 
 ## Project Overview
 
@@ -19,7 +19,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `275ab5f chore: bump PWA cache version to v17 for read-only account feature`
+- `80f0402 chore: bump PWA cache version to v18 for flight delay update`
 
 ⚠️ **Action needed (high priority):** the read-only account feature's actual security boundary is in `firestore.rules` (`isEditUser()` vs `isAllowedUser()`), which — like every other Firestore rules change this session — **has not been deployed to production**. Until `firebase deploy --only firestore:rules` is run, `yeonholee1024@gmail.com` may either (a) be unable to read anything if production is on some other restrictive rule set, or (b) worse, actually be able to write if production is still on permissive/test-mode rules. Deploy the rules before relying on the read-only restriction for anything sensitive.
 
@@ -322,7 +322,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v17` (bumped for the read-only account feature; `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v18` (bumped for the Air Europa UX6007 8/29 flight delay update; `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -819,6 +819,23 @@ Added a third allowed account, `yeonholee1024@gmail.com` (display name `연호`)
 - Added a `👀 읽기 전용` badge next to the display name in the header's `authBox` when `isReadOnly` is true.
 - Updated copy that previously named only 재환/혜리 to be generic: the blocked-user error message (`"⛔ 이 여행 페이지는 허용된 계정만 사용할 수 있습니다."`), the app footer, the header's pre-login subtitle (now lists all 3 names, marking 연호 read-only), and the `전체 미완료` confirm dialog.
 
+### Air Europa UX6007 Flight Delay Update (8/29 Outbound Leg)
+
+Committed and pushed directly to `main`:
+
+- `22afe63 8/29 Air Europa UX6007 항공편 지연 반영 (08:40→09:25 → 09:20→09:48)`
+- `80f0402 chore: bump PWA cache version to v18 for flight delay update`
+
+The user reported (with an Air Europa delay-notification screenshot, reservation `852F4P`) that outbound flight `UX6007` (`BCN → PMI`, 2026-08-29) changed from `08:40 → 09:25` to `09:20 → 09:48`. The screenshot's "이전 여행 일정" section also showed the return leg `UX6156` (`PMI → BCN`, 9/3, `10:15 → 11:05`) but with no new replacement time shown — so **only the outbound 8/29 leg's time was updated**; the 9/3 return leg (`Air Europa PMI → BCN 9/3(목) 10:15 → 11:05`, checklist row 787) was left untouched since no new time was confirmed for it.
+
+Three places updated in `index.html`:
+
+- `SCHEDULE_DAY_NOTES["2026-08-29"][0]` ("마요르카 이동 — Alberg Centre Esplai → BCN T1" card): `출발/도착` row `08:40 → 09:25` → `⚠️ 09:20 → 09:48 (지연 변경)`; `🛫 출발` row `08:40 BCN → PMI` → `09:20 BCN → PMI (지연)`; `🚪 게이트 이동` row `07:30 전후` → `08:10 전후 (변경)` (shifted by the same ~40min delay to keep the pre-flight buffer proportional); `🕐 숙소 출발` row annotated `(추천, 유지)` since the earlier prep timeline still applies as a comfortable buffer, not tightened by the delay; note field prefixed with an explicit delay-change callout including the reservation number.
+- `SCHEDULE_DAY_NOTES["2026-08-29"][1]` ("Air Europa UX6007 탑승권 정보" card): `출발/도착` row updated to `⚠️ 09:20 → 09:48 (29 Aug, 지연 변경)`. The `🕐 탑승 시각` row (previously `07:55`) was **not** guessed forward — the delay screenshot did not include a new boarding time — so it now reads `⚠️ 미확정 — 앱/이메일에서 새 탑승권 재확인 필요` (unconfirmed, re-check the app/email for the reissued boarding pass), and the note was rewritten to explain the delay and tell the user to re-verify the actual boarding time/gate before departure day rather than relying on this reference card.
+- Checklist leaf item (`✈️ 1. 항공` section, flattened index unchanged — text-only edit): `"Air Europa BCN → PMI 8/29(토) 08:40 → 09:25 확인"` → `"Air Europa BCN → PMI 8/29(토) 09:20 → 09:48 확인 (⚠️ 지연 변경, 기존 08:40 → 09:25)"`. No index drift — same array position, label text only.
+
+No Firestore writes involved (all changes are to static `SCHEDULE_DAY_NOTES`/`data` constants in `index.html`, not to any Firestore-backed document), so this required no live data testing.
+
 ## Local Verification Results
 
 Latest local verification after adding accommodation booking info:
@@ -914,6 +931,8 @@ Recommended next steps:
 14. Since the checklist item count changed again (`119` → `113`), both users should open the checklist tab and review their checked/hidden items across the whole list — the index shift from this change is non-uniform, unlike prior single-block shifts.
 15. Have `yeonholee1024@gmail.com` sign in once the rules are deployed, and confirm: (a) all 4 tabs load and display data correctly, (b) every add/edit/delete/check control is genuinely disabled or hidden, (c) attempting a write (e.g. via browser dev tools calling the Firestore SDK directly, bypassing the UI) is rejected by the rules, not just the UI.
 16. Confirm with the user whether `연호`'s read-only access should ever be upgradable to edit access later (e.g. a simple move from `READ_ONLY_USERS` removal + `isEditUser()` rules update), or whether read-only is permanent for this account for the whole trip.
+17. **New (from 8/29 delay update):** the UX6007 boarding pass card's `🕐 탑승 시각` row is now marked unconfirmed (was `07:55`, tied to the old `08:40` departure). Once the user has the reissued boarding pass (new boarding time/gate) for the delayed `09:20` departure, update `SCHEDULE_DAY_NOTES["2026-08-29"][1].rows` in `index.html` with the real value instead of the placeholder warning text.
+18. Confirm whether the return leg `UX6156` (`PMI → BCN`, 9/3, currently still `10:15 → 11:05`) is also affected by a schedule change — the delay screenshot listed it under "이전 여행 일정" with no visible new time, so it was left unchanged in this pass; re-check with the user or the Air Europa app closer to the date.
 
 Potential future improvements:
 
