@@ -84,7 +84,8 @@
   .expense-list { display:grid; gap:8px; }
   .expense-item { background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px; box-shadow:0 3px 14px #00000006; }
   .expense-top { display:flex; justify-content:space-between; gap:10px; }
-  .expense-amount { font-size:18px; font-weight:900; color:var(--accent); white-space:nowrap; }
+  .expense-amount { font-size:18px; font-weight:900; color:var(--accent); white-space:nowrap; text-align:right; }
+  .expense-amount-krw { font-size:12px; font-weight:600; color:#8a8f98; white-space:nowrap; text-align:right; margin-top:2px; }
   .expense-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
   .tag { display:inline-block; padding:2px 7px; background:#eef2ff; color:#27357a; border-radius:999px; font-size:12px; font-weight:800; }
   .shopping-list { display:grid; gap:8px; }
@@ -1523,6 +1524,15 @@ function formatMoney(amount, currency = "EUR") {
   }).format(Number(amount || 0));
 }
 
+// 참고용 원화 환산 (고정 환율 가정, 실시간 환율 아님)
+const EUR_TO_KRW_RATE = 1600;
+
+function formatEurKrwEstimate(amount, currency) {
+  if (currency !== "EUR") return "";
+  const krw = Number(amount || 0) * EUR_TO_KRW_RATE;
+  return `약 ${new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(krw)} (환율 1,600원 가정)`;
+}
+
 function setActiveTab(tabName) {
   activeTab = tabName;
   document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -1800,7 +1810,10 @@ function renderExpenses() {
           <div class="item-title">${escapeHtml(expense.title)}</div>
           <div class="item-meta">${formatDateTimeLabel(expense.dateTime)}</div>
         </div>
-        <div class="expense-amount">${formatMoney(expense.amount, expense.currency)}</div>
+        <div>
+          <div class="expense-amount">${formatMoney(expense.amount, expense.currency)}</div>
+          ${expense.currency === "EUR" ? `<div class="expense-amount-krw">${formatEurKrwEstimate(expense.amount, expense.currency)}</div>` : ""}
+        </div>
       </div>
       <div class="expense-tags">
         <span class="tag">${escapeHtml(expense.category || "기타")}</span>
