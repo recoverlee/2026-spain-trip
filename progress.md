@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-29 (Shopping tab renamed to 유용한 링크/Useful Links; cache v19)
+Last updated: 2026-08-29 (EUR expense amounts now show a KRW estimate at a fixed 1,600 rate; cache v20)
 
 ## Project Overview
 
@@ -19,7 +19,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `338d82b chore: bump PWA cache version to v19 for shopping-tab rename`
+- `c990523 chore: bump PWA cache version to v20 for EUR→KRW estimate display`
 
 ⚠️ **Action needed (high priority):** the read-only account feature's actual security boundary is in `firestore.rules` (`isEditUser()` vs `isAllowedUser()`), which — like every other Firestore rules change this session — **has not been deployed to production**. Until `firebase deploy --only firestore:rules` is run, `yeonholee1024@gmail.com` may either (a) be unable to read anything if production is on some other restrictive rule set, or (b) worse, actually be able to write if production is still on permissive/test-mode rules. Deploy the rules before relying on the read-only restriction for anything sensitive.
 
@@ -186,6 +186,7 @@ Current UI:
   - total expenses
   - today expenses
   - category totals
+- EUR-denominated line items show a small gray KRW estimate under the main amount (`formatEurKrwEstimate()`, fixed rate `EUR_TO_KRW_RATE = 1600`, display-only, not stored in Firestore) — added 2026-08-29
 
 ### Shopping
 
@@ -322,7 +323,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v19` (bumped for the shopping-tab rename to 유용한 링크/Useful Links; `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v20` (bumped for the EUR→KRW estimate display on expense amounts; `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -855,6 +856,21 @@ The user pointed out (with an annotated screenshot) that the 4th tab, previously
 - Descriptive prose mentioning "쇼핑" inside `SCHEDULE_DAY_NOTES` cards (e.g. "식사/쇼핑/탑승구 이동", "그라시아 거리 · 쇼핑 · ...") — these describe real shopping streets/activities in the itinerary, unrelated to the app tab's name.
 
 No Firestore schema/index change and no data migration needed — this is a pure UI label change.
+
+### EUR Expense Amounts Show a KRW Estimate
+
+Committed and pushed directly to `main`:
+
+- `89174af 지출 목록: 유로 금액 아래에 원화 환산 참고값 표시 (환율 1,600원 가정)`
+- `c990523 chore: bump PWA cache version to v20 for EUR→KRW estimate display`
+
+The user asked (with a screenshot circling a `€3.80` amount in the 지출 tab) for a small-text KRW conversion to appear under each EUR expense amount, using a fixed assumed rate of ₩1,600 per €1.
+
+- Added `EUR_TO_KRW_RATE = 1600` (a plain constant, not fetched from any exchange-rate API) and `formatEurKrwEstimate(amount, currency)`, which returns `""` for any non-EUR currency and otherwise formats `amount * 1600` as a KRW currency string prefixed with `약` (approx.) and suffixed with `(환율 1,600원 가정)` (rate assumption disclosed inline so it's never mistaken for a live/authoritative conversion).
+- `renderExpenses()`: the `.expense-amount` div is now wrapped together with a new `.expense-amount-krw` div directly beneath it, rendered only when `expense.currency === "EUR"` — `KRW`/`USD` expense rows are unaffected (no extra line).
+- New CSS `.expense-amount-krw` (12px, gray `#8a8f98`, right-aligned to match the main amount) added next to the existing `.expense-amount` rule; `.expense-amount` itself gained `text-align:right` so the two lines align consistently now that they sit in a shared column `div` instead of being the sole child of `.expense-top`'s right side.
+- This is purely a display computation — no new Firestore field, no write, no migration. Existing expense documents render the estimate automatically since it's derived from already-stored `amount`/`currency` at render time.
+- Scope: only the 지출 tab's expense list line items (matching the screenshot). The 총 지출/오늘 지출/카테고리별 summary cards (`formatMoneyGroup`) and the expense add/edit form were intentionally left as-is — not requested, and the summary totals mix currencies (`totals.byCategory` groups are keyed by currency already via `formatMoneyGroup`), so adding a blended KRW estimate there would need separate design thought if wanted later.
 
 ## Local Verification Results
 
