@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-29 (Air Europa UX6007 8/29 flight delay reflected; cache v18)
+Last updated: 2026-08-29 (Shopping tab renamed to 유용한 링크/Useful Links; cache v19)
 
 ## Project Overview
 
@@ -10,7 +10,7 @@ The app started as a single-page Firebase-backed checklist and is now being expa
 
 1. Schedule (일정)
 2. Expenses (지출)
-3. Shopping (쇼핑) — added 2026-08-24
+3. Useful Links (유용한 링크, formerly named 쇼핑/Shopping) — added 2026-08-24, renamed 2026-08-29
 4. Checklist (체크리스트)
 
 The app is intentionally still kept mostly inside `index.html` to avoid a large structural migration while the feature set is stabilizing.
@@ -19,7 +19,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `80f0402 chore: bump PWA cache version to v18 for flight delay update`
+- `338d82b chore: bump PWA cache version to v19 for shopping-tab rename`
 
 ⚠️ **Action needed (high priority):** the read-only account feature's actual security boundary is in `firestore.rules` (`isEditUser()` vs `isAllowedUser()`), which — like every other Firestore rules change this session — **has not been deployed to production**. Until `firebase deploy --only firestore:rules` is run, `yeonholee1024@gmail.com` may either (a) be unable to read anything if production is on some other restrictive rule set, or (b) worse, actually be able to write if production is still on permissive/test-mode rules. Deploy the rules before relying on the read-only restriction for anything sensitive.
 
@@ -322,7 +322,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v18` (bumped for the Air Europa UX6007 8/29 flight delay update; `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v19` (bumped for the shopping-tab rename to 유용한 링크/Useful Links; `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -835,6 +835,26 @@ Three places updated in `index.html`:
 - Checklist leaf item (`✈️ 1. 항공` section, flattened index unchanged — text-only edit): `"Air Europa BCN → PMI 8/29(토) 08:40 → 09:25 확인"` → `"Air Europa BCN → PMI 8/29(토) 09:20 → 09:48 확인 (⚠️ 지연 변경, 기존 08:40 → 09:25)"`. No index drift — same array position, label text only.
 
 No Firestore writes involved (all changes are to static `SCHEDULE_DAY_NOTES`/`data` constants in `index.html`, not to any Firestore-backed document), so this required no live data testing.
+
+### Shopping Tab Renamed to 유용한 링크 (Useful Links)
+
+Committed and pushed directly to `main`:
+
+- `b5a46b3 쇼핑 탭을 '유용한 링크'로 명칭 변경`
+- `338d82b chore: bump PWA cache version to v19 for shopping-tab rename`
+
+The user pointed out (with an annotated screenshot) that the 4th tab, previously labeled "쇼핑" (Shopping), should instead read "유용한 링크" (Useful Links) — the tab holds arbitrary reference bookmarks (parking spots, restaurants, etc.), not a shopping list specifically. User-facing text only was changed:
+
+- Tab button label (`data-tab="shopping"`): `쇼핑` → `유용한 링크`
+- Panel `<h2>` and add button: `쇼핑` / `+ 쇼핑 추가` → `유용한 링크` / `+ 링크 추가`
+- Status/confirm messages in `saveShoppingItem`/`deleteShoppingItem`/`renderShopping`: `쇼핑 링크가 저장되었습니다.` → `링크가 저장되었습니다.`, `쇼핑 링크를 저장하지 못했습니다...` → `링크를 저장하지 못했습니다...`, `이 쇼핑 링크를 삭제할까요?` → `이 링크를 삭제할까요?`, `쇼핑 링크가 삭제되었습니다.` → `링크가 삭제되었습니다.`, `쇼핑 링크를 삭제하지 못했습니다...` → `링크를 삭제하지 못했습니다...`, empty-list message `등록된 쇼핑 링크가 없습니다.` → `등록된 링크가 없습니다.`, load-failure message `쇼핑 목록을 불러오지 못했습니다...` → `링크 목록을 불러오지 못했습니다...`
+
+**Deliberately left unchanged (internal-only, no user-facing effect):**
+- All JS identifiers/DOM ids/Firestore collection path (`shoppingItems`, `shoppingCollection`, `shoppingPanel`, `shoppingList`, `shoppingForm`, `addShoppingBtn`, `tripData/shopping/items`, `saveShoppingItem`, etc.) — renaming these would be a pure internal refactor with real risk (Firestore path rename would orphan existing saved links) for zero user-visible benefit.
+- The unrelated `EXPENSE_CATEGORIES` dropdown option `"쇼핑"` (지출 tab's expense category, e.g. tagging a purchase as a "Shopping" expense) — a different feature that happens to share the same Korean word; not touched.
+- Descriptive prose mentioning "쇼핑" inside `SCHEDULE_DAY_NOTES` cards (e.g. "식사/쇼핑/탑승구 이동", "그라시아 거리 · 쇼핑 · ...") — these describe real shopping streets/activities in the itinerary, unrelated to the app tab's name.
+
+No Firestore schema/index change and no data migration needed — this is a pure UI label change.
 
 ## Local Verification Results
 
