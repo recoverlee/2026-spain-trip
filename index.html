@@ -1876,10 +1876,17 @@ function calculateExpenseTotals() {
   return totals;
 }
 
-function formatMoneyGroup(group) {
+function formatMoneyGroup(group, showKrwHint = false) {
   const entries = Object.entries(group || {});
   if (!entries.length) return "0";
-  return entries.map(([currency, amount]) => formatMoney(amount, currency)).join(" / ");
+  return entries.map(([currency, amount]) => {
+    const formatted = formatMoney(amount, currency);
+    if (showKrwHint && currency === "EUR") {
+      const krwText = new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(Number(amount || 0) * EUR_TO_KRW_RATE);
+      return `${formatted} (약 ${krwText})`;
+    }
+    return formatted;
+  }).join(" / ");
 }
 
 function renderExpenses() {
@@ -1889,8 +1896,8 @@ function renderExpenses() {
     .join("");
 
   expenseSummaryEl.innerHTML = `
-    <div class="summary-card"><div class="summary-label">총 지출</div><div class="summary-value">${formatMoneyGroup(totals.total)}</div></div>
-    <div class="summary-card"><div class="summary-label">오늘 지출</div><div class="summary-value">${formatMoneyGroup(totals.today)}</div></div>
+    <div class="summary-card"><div class="summary-label">총 지출</div><div class="summary-value">${formatMoneyGroup(totals.total, true)}</div></div>
+    <div class="summary-card"><div class="summary-label">오늘 지출</div><div class="summary-value">${formatMoneyGroup(totals.today, true)}</div></div>
     <div class="summary-card category-list"><div class="summary-label">카테고리별 지출</div>${categoryRows}</div>
   `;
 
