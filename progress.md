@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-31 (receipt photo attachment for expenses, stored as compressed base64 in Firestore; cache v21)
+Last updated: 2026-08-31 (총 지출/오늘 지출 summary cards show a KRW estimate next to EUR amounts; cache v22)
 
 ## Project Overview
 
@@ -19,7 +19,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `3e03aa2 chore: bump PWA cache version to v21 for receipt photo attachment`
+- `e5e8219 chore: bump PWA cache version to v22 for expense summary KRW hint`
 
 ⚠️ **Action needed (high priority):** the read-only account feature's actual security boundary is in `firestore.rules` (`isEditUser()` vs `isAllowedUser()`), which — like every other Firestore rules change this session — **has not been deployed to production**. Until `firebase deploy --only firestore:rules` is run, `yeonholee1024@gmail.com` may either (a) be unable to read anything if production is on some other restrictive rule set, or (b) worse, actually be able to write if production is still on permissive/test-mode rules. Deploy the rules before relying on the read-only restriction for anything sensitive.
 
@@ -324,7 +324,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v21` (bumped for the expense receipt-photo attachment feature; `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v22` (bumped for the 총 지출/오늘 지출 summary-card KRW hint; `v21` was for the expense receipt-photo attachment feature, `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -881,6 +881,20 @@ The user asked whether receipt photos could be attached when entering an expense
 - **List display**: `renderExpenses()` shows a 52×52px `.receipt-thumb` thumbnail under the note (when `expense.receiptImage` is set), `data-receipt-view="${id}"`. Clicking it opens a full-screen lightbox overlay (`#receiptLightbox`, new markup added just before `<div id="app">`) showing the full compressed image; a close button and a click on the dark backdrop both dismiss it.
 - **No `firestore.rules` change needed** — `receiptImage` is just another string field on the existing `tripData/expenses/items/{id}` document, already covered by the existing read/write rules for that path.
 - **No Storage/Blaze dependency, no new secrets, no CLI deployment step** — this feature is live as soon as the `main` push reaches GitHub Pages, unlike the still-undeployed Firestore rules work from earlier in the session.
+
+### Expense Summary Cards (총 지출/오늘 지출) Show a KRW Hint Next to EUR Totals
+
+Committed and pushed directly to `main`:
+
+- `d4826eb 지출 요약 카드(총 지출/오늘 지출)에 유로 금액 옆 원화 환산 괄호 표기 추가`
+- `e5e8219 chore: bump PWA cache version to v22 for expense summary KRW hint`
+
+Follow-up to the earlier per-item EUR→KRW estimate (see below): the user asked (with a screenshot circling the `총 지출` card's `€546.29 / ₩63,500` line) for the same kind of parenthetical KRW estimate on the `총 지출`/`오늘 지출` summary cards, not just individual expense list rows.
+
+- `formatMoneyGroup(group, showKrwHint = false)` gained a second parameter; when `true`, any `EUR` entry in the group gets `(약 ₩x,xxx)` appended right after its formatted amount, computed via the existing `EUR_TO_KRW_RATE = 1600` constant (reused, not redefined). `KRW`/`USD` entries are untouched.
+- `renderExpenses()`: `formatMoneyGroup(totals.total, true)` and `formatMoneyGroup(totals.today, true)` for the 총 지출/오늘 지출 cards. The 카테고리별 지출 rows (`formatMoneyGroup(totals.byCategory[category])`) were deliberately left without the hint (third param omitted → defaults to `false`) since the user's request and screenshot only pointed at the two top summary cards.
+- Example result for a mixed-currency total: `€546.29 (약 ₩873,264) / ₩63,500`.
+- Purely a display computation on already-derived totals — no Firestore field, no write, no migration.
 
 ### EUR Expense Amounts Show a KRW Estimate
 
