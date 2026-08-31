@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-29 (EUR expense amounts now show a KRW estimate at a fixed 1,600 rate; cache v20)
+Last updated: 2026-08-31 (receipt photo attachment for expenses, stored as compressed base64 in Firestore; cache v21)
 
 ## Project Overview
 
@@ -19,7 +19,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `c990523 chore: bump PWA cache version to v20 for EUR→KRW estimate display`
+- `3e03aa2 chore: bump PWA cache version to v21 for receipt photo attachment`
 
 ⚠️ **Action needed (high priority):** the read-only account feature's actual security boundary is in `firestore.rules` (`isEditUser()` vs `isAllowedUser()`), which — like every other Firestore rules change this session — **has not been deployed to production**. Until `firebase deploy --only firestore:rules` is run, `yeonholee1024@gmail.com` may either (a) be unable to read anything if production is on some other restrictive rule set, or (b) worse, actually be able to write if production is still on permissive/test-mode rules. Deploy the rules before relying on the read-only restriction for anything sensitive.
 
@@ -170,6 +170,7 @@ Fields:
 - `category`: one of `식비`, `교통`, `숙박`, `관광`, `쇼핑`, `통신`, `기타`
 - `title`
 - `note`: optional
+- `receiptImage`: optional — base64 `data:image/jpeg;...` string of a compressed receipt photo (added 2026-08-31, see Completed Work History; capped at ~700KB encoded, no separate Storage bucket)
 - `createdAt`: Firestore `serverTimestamp()`
 - `createdBy`: display name
 - `updatedAt`: Firestore `serverTimestamp()`
@@ -323,7 +324,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v20` (bumped for the EUR→KRW estimate display on expense amounts; `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v21` (bumped for the expense receipt-photo attachment feature; `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -857,6 +858,30 @@ The user pointed out (with an annotated screenshot) that the 4th tab, previously
 
 No Firestore schema/index change and no data migration needed — this is a pure UI label change.
 
+### Receipt Photo Attachment for Expenses (Free-Tier Approach)
+
+Committed and pushed directly to `main`:
+
+- `38e2b55 지출 입력에 영수증 사진 첨부 기능 추가 (Firestore base64 저장)`
+- `3e03aa2 chore: bump PWA cache version to v21 for receipt photo attachment`
+
+The user asked whether receipt photos could be attached when entering an expense. Before implementing, walked through the storage options with the user via `AskUserQuestion` since this is an infrastructure decision with real trade-offs:
+
+1. **Firebase Storage** — best photo quality/no size cap, but Firebase Storage now requires the paid **Blaze** (pay-as-you-go) plan; new Storage buckets cannot be created on the free Spark plan. Would also need a new `storage.rules` file and console-based deployment (same CLI-blocked situation as `firestore.rules`).
+2. **GitHub repo storage with a link** — user's own suggestion, but flagged as a real security problem: uploading from the browser to GitHub requires a write-scoped personal access token, and embedding that token in client-side JS on a publicly-accessible, unauthenticated GitHub Pages site would let anyone extract it via dev tools and gain write access to the repo. Rejected.
+3. **Compressed photo stored directly in Firestore as base64** — no new billing plan, no new token/credential, works entirely within the existing free Spark plan and existing `firestore.rules`. Trade-off: lower image quality (client-side compressed) and a de-facto per-photo size ceiling from Firestore's 1MB document limit.
+
+**User chose option 3 (free tier).** Implementation in `index.html`:
+
+- **Form**: added a file input (`#expenseReceiptInput`, `accept="image/*"`) plus a preview thumbnail + "사진 삭제" button (`#expenseReceiptPreviewWrap`) to the 지출 add/edit form, right after the 메모 field.
+- **Compression**: `compressImageFile(file, maxDim=1000, quality=0.6)` reads the file via `FileReader`, draws it to an offscreen `<canvas>` resized so its longer side is ≤1000px, and re-encodes as JPEG at quality 0.6 via `canvas.toDataURL(...)`, returning a `data:image/jpeg;base64,...` string.
+- **Size guard**: `handleReceiptFileChange()` rejects (with a status-bar error asking the user to retry with a simpler photo) any compressed result whose base64 string exceeds 700KB — leaves comfortable headroom under Firestore's 1MB per-document limit, accounting for the ~33% base64 size inflation over raw bytes.
+- **State**: two module-level flags — `pendingReceiptDataUrl` (new/replaced photo pending save) and `removeReceiptFlag` (user explicitly clicked 사진 삭제 while editing an item that had a photo). Both reset in `resetExpenseForm()`.
+- **Save logic** in `saveExpense()`: `payload.receiptImage = pendingReceiptDataUrl` if a new photo was chosen; `payload.receiptImage = deleteField()` if the user removed an existing photo without picking a replacement; otherwise the field is omitted entirely from the payload so `updateDoc`'s partial-merge behavior leaves an unrelated field edit (e.g. just changing the amount) from touching any existing photo. (`deleteField()` was already imported for the hide/restore bug fix — see "Restore Bug Fix" above — same correct pattern reused here.)
+- **List display**: `renderExpenses()` shows a 52×52px `.receipt-thumb` thumbnail under the note (when `expense.receiptImage` is set), `data-receipt-view="${id}"`. Clicking it opens a full-screen lightbox overlay (`#receiptLightbox`, new markup added just before `<div id="app">`) showing the full compressed image; a close button and a click on the dark backdrop both dismiss it.
+- **No `firestore.rules` change needed** — `receiptImage` is just another string field on the existing `tripData/expenses/items/{id}` document, already covered by the existing read/write rules for that path.
+- **No Storage/Blaze dependency, no new secrets, no CLI deployment step** — this feature is live as soon as the `main` push reaches GitHub Pages, unlike the still-undeployed Firestore rules work from earlier in the session.
+
 ### EUR Expense Amounts Show a KRW Estimate
 
 Committed and pushed directly to `main`:
@@ -969,6 +994,8 @@ Recommended next steps:
 16. Confirm with the user whether `연호`'s read-only access should ever be upgradable to edit access later (e.g. a simple move from `READ_ONLY_USERS` removal + `isEditUser()` rules update), or whether read-only is permanent for this account for the whole trip.
 17. **New (from 8/29 delay update):** the UX6007 boarding pass card's `🕐 탑승 시각` row is now marked unconfirmed (was `07:55`, tied to the old `08:40` departure). Once the user has the reissued boarding pass (new boarding time/gate) for the delayed `09:20` departure, update `SCHEDULE_DAY_NOTES["2026-08-29"][1].rows` in `index.html` with the real value instead of the placeholder warning text.
 18. Confirm whether the return leg `UX6156` (`PMI → BCN`, 9/3, currently still `10:15 → 11:05`) is also affected by a schedule change — the delay screenshot listed it under "이전 여행 일정" with no visible new time, so it was left unchanged in this pass; re-check with the user or the Air Europa app closer to the date.
+19. Test the receipt photo attachment (add, edit-replace, edit-remove, and the lightbox) live with both allowed accounts, especially on an actual phone camera photo (large original file) to confirm the 700KB post-compression cap doesn't reject normal receipt photos too often — if it does, consider lowering `maxDim`/`quality` further in `compressImageFile()`, or revisit the Firebase Storage + Blaze option now that the user has seen the trade-offs.
+20. If the household later decides the free-tier photo quality is too low or 700KB rejections become common, the documented path is: enable Billing → Blaze in the Firebase console, add a `storage.rules` file mirroring the existing `isAllowedUser()`/`isEditUser()` split, deploy it from the console (same as the outstanding `firestore.rules` deploy), and swap `receiptImage` from a base64 string to a Storage download URL.
 
 Potential future improvements:
 
