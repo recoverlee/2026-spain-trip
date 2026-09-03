@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-09-03 (9/3 UX6156 return-flight real-time delay reflected on the 일정 tab; cache v23)
+Last updated: 2026-09-03 (9/3 BCN airport → CASP74 Apartments taxi transfer card added; cache v24)
 
 ## Project Overview
 
@@ -19,7 +19,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `07c087c chore: bump PWA cache version to v23 for 9/3 UX6156 return-flight delay`
+- `4e0fadc chore: bump PWA cache version to v24 for 9/3 airport→hotel taxi transfer card`
 
 ⚠️ **Action needed (high priority):** the read-only account feature's actual security boundary is in `firestore.rules` (`isEditUser()` vs `isAllowedUser()`), which — like every other Firestore rules change this session — **has not been deployed to production**. Until `firebase deploy --only firestore:rules` is run, `yeonholee1024@gmail.com` may either (a) be unable to read anything if production is on some other restrictive rule set, or (b) worse, actually be able to write if production is still on permissive/test-mode rules. Deploy the rules before relying on the read-only restriction for anything sensitive.
 
@@ -324,7 +324,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v23` (bumped for the 9/3 UX6156 return-flight real-time delay update; `v22` was for the 총 지출/오늘 지출 summary-card KRW hint, `v21` was for the expense receipt-photo attachment feature, `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v24` (bumped for the 9/3 BCN airport → CASP74 Apartments taxi transfer card; `v23` was for the 9/3 UX6156 return-flight real-time delay update, `v22` was for the 총 지출/오늘 지출 summary-card KRW hint, `v21` was for the expense receipt-photo attachment feature, `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -910,6 +910,20 @@ Unlike the 8/29 outbound delay (an Air Europa notification email/app screenshot 
 - **New `SCHEDULE_DAY_NOTES["2026-09-03"]` entry** (this date previously had no day-note card at all — only two checklist mentions) with a single card, "Air Europa UX6156 귀환편 — PMI → BCN (실시간 지연 반영)": shows both the original scheduled time and the real-time delayed time side by side (rather than overwriting the original, since this isn't a confirmed reissue like the 8/29 case), the Palma gate, a cross-reference to the existing Record Go 08:00 rental car return checklist item, and a note explicitly flagging the data source/timestamp and that the status can still change further.
 - Updated the two existing checklist leaf items that reference this flight (`✈️ 1. 항공` section's `"Air Europa PMI → BCN 9/3(목) 10:15 → 11:05 확인"` and the `🗺️` moving-day-decisions section's `"9/3(목) PMI → BCN 10:15 비행"`) to append the same delay caveat. Both are text-only edits at their existing flattened indexes — no index drift.
 - Deliberately did not treat this as a confirmed rebooking (unlike the 8/29 UX6007 case, where Air Europa itself sent a delay notice with a reservation number) — the note's wording keeps both times visible and repeatedly tells the user to reconfirm at the airport, since live flight-tracker estimates can revert or change again before departure.
+
+### 9/3 BCN Airport → CASP74 Apartments Taxi Transfer Card
+
+Committed and pushed directly to `main`:
+
+- `1c4689f 9/3 BCN 공항 도착 후 CASP74 Apartments까지 택시 이동 카드 추가`
+- `4e0fadc chore: bump PWA cache version to v24 for 9/3 airport→hotel taxi transfer card`
+
+The user shared a screenshot of an external chat/AI conversation comparing transit options from BCN airport (arriving on the just-delayed UX6156) to the next accommodation, CASP74 Apartments (Carrer de Casp 74), and said they'd already decided to take a taxi due to luggage, and asked for that to be added to the schedule.
+
+- Added a second card to `SCHEDULE_DAY_NOTES["2026-09-03"]` (after the UX6156 flight-delay card added earlier the same day): "BCN 공항 도착 → CASP74 Apartments 이동 (택시)". Rows: chosen mode (택시, with the luggage-driven reasoning), route (BCN T1 → Carrer de Casp 74), distance/time (~14km, ~25–30분), a rough fare estimate (€35–40대, flagged as "현장에서 최종 확인"/confirm on site rather than presented as exact), and the R2 Nord train alternative kept for reference (with its Terminal 1→2 shuttle-transfer complication noted as the reason it wasn't chosen).
+- **Deliberately did not fabricate a precise taxi fare** — Barcelona airport taxi pricing is a metered/flat-supplement combination that varies with traffic and exact drop-off, so this uses a rounded typical range rather than presenting one number as authoritative, consistent with how the 8/29 Mallorca leg's taxi estimate (`€20~24`) was handled earlier in the session.
+- `ACCOMMODATION_BOOKINGS["9/3(목)~9/7(월) — Casp 74 Apartments"]` gained `scheduleOrder: 2` (previously unset, i.e. `0` = rendered before all day-note cards) so the booking card now renders after both of 9/3's day-note cards (flight delay, then taxi transfer), matching the established chronological-order convention for arrival-day cards (see "Gran Hotel Sóller Card Reordered" and the 8/29 boarding-pass card entries above for the same pattern).
+- Purely additive to `SCHEDULE_DAY_NOTES`/`ACCOMMODATION_BOOKINGS` static data — no Firestore write, no index drift on the checklist.
 
 ### EUR Expense Amounts Show a KRW Estimate
 
