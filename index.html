@@ -575,6 +575,7 @@ const ACCOMMODATION_BOOKINGS = {
   "9/3(목)~9/7(월) — Casp 74 Apartments": {
     hotelName: "CASP74 Apartments",
     checkin: "2026-09-03",
+    scheduleOrder: 2, // "UX6156 귀환편(지연 반영)", "BCN 공항 → 숙소 택시 이동" 카드 다음(맨 뒤)에 표시
     breakfast: "excluded",
     breakfastText: "조식 미포함",
     rows: [
@@ -728,6 +729,18 @@ const SCHEDULE_DAY_NOTES = {
         ["🚗 참고", "Record Go 렌터카 08:00 반납 예정 (체크리스트 '🗺️ 이동' 항목 참고)"]
       ],
       note: "⚠️ 2026-09-03 09:22 기준 실시간 항공편 정보로 확인된 지연: 출발 10:15 → 10:55, 도착 11:05 → 11:30 (약 40분 지연). 항공편 상태는 이후에도 계속 바뀔 수 있으므로, 반드시 원래 예정된 출발 시간(10:15) 기준으로 탑승구에 도착하고 공항 모니터에서 최신 게이트·시각을 다시 확인할 것."
+    },
+    {
+      title: "BCN 공항 도착 → CASP74 Apartments 이동 (택시)",
+      rows: [
+        ["🚕 이동 수단", "택시 (결정) — 짐 많은 가족 3명 기준 R2 Nord 기차+도보 환승보다 편리하다고 판단"],
+        ["출발", "Barcelona-El Prat 공항 Terminal 1 (Air Europa 도착 터미널)"],
+        ["도착", "CASP74 Apartments · Carrer de Casp 74, Barcelona"],
+        ["거리/소요시간", "약 14km · 약 25~30분 (교통 상황에 따라 변동)"],
+        ["예상 요금", "공항↔시내 택시 정액/미터 요금 기준 대략 €35~40 수준 (현장에서 최종 확인)"],
+        ["대안 (미선택)", "R2 Nord 기차 → Barcelona Passeig de Gràcia 하차 → 도보 약 10분 (환승 포함 총 약 44분, T2에서만 탑승 가능하므로 T1 도착 시 무료 공항 셔틀로 T2 이동 필요)"]
+      ],
+      note: "짐이 많아 택시로 이동하기로 결정. 공항 도착층 택시 승강장에서 탑승, 기사에게 목적지 주소(Carrer de Casp 74) 제시. 참고로 기차(R2 Nord)는 요금은 저렴하지만 Terminal 1 도착 시 무료 셔틀로 Terminal 2까지 이동해야 탑승 가능해 환승이 번거로움 — 짐이 없을 때 참고용으로만 남겨둠."
     }
   ],
   "2026-09-04": [
