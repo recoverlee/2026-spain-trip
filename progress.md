@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-08-31 (총 지출/오늘 지출 summary cards show a KRW estimate next to EUR amounts; cache v22)
+Last updated: 2026-09-03 (9/3 UX6156 return-flight real-time delay reflected on the 일정 tab; cache v23)
 
 ## Project Overview
 
@@ -19,7 +19,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `e5e8219 chore: bump PWA cache version to v22 for expense summary KRW hint`
+- `07c087c chore: bump PWA cache version to v23 for 9/3 UX6156 return-flight delay`
 
 ⚠️ **Action needed (high priority):** the read-only account feature's actual security boundary is in `firestore.rules` (`isEditUser()` vs `isAllowedUser()`), which — like every other Firestore rules change this session — **has not been deployed to production**. Until `firebase deploy --only firestore:rules` is run, `yeonholee1024@gmail.com` may either (a) be unable to read anything if production is on some other restrictive rule set, or (b) worse, actually be able to write if production is still on permissive/test-mode rules. Deploy the rules before relying on the read-only restriction for anything sensitive.
 
@@ -324,7 +324,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v22` (bumped for the 총 지출/오늘 지출 summary-card KRW hint; `v21` was for the expense receipt-photo attachment feature, `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v23` (bumped for the 9/3 UX6156 return-flight real-time delay update; `v22` was for the 총 지출/오늘 지출 summary-card KRW hint, `v21` was for the expense receipt-photo attachment feature, `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -896,6 +896,21 @@ Follow-up to the earlier per-item EUR→KRW estimate (see below): the user asked
 - Example result for a mixed-currency total: `€546.29 (약 ₩873,264) / ₩63,500`.
 - Purely a display computation on already-derived totals — no Firestore field, no write, no migration.
 
+### 9/3 UX6156 Return Flight (PMI → BCN) Real-Time Delay Reflected
+
+Committed and pushed directly to `main`:
+
+- `4c2ca16 9/3 Air Europa UX6156 귀환편 실시간 지연 반영 (10:15→11:05 → 10:55→11:30)`
+- `07c087c chore: bump PWA cache version to v23 for 9/3 UX6156 return-flight delay`
+
+Unlike the 8/29 outbound delay (an Air Europa notification email/app screenshot with a reservation number), this update was sourced from a Google flight-status search screenshot (`UX 6156 PMI BCN 2026-09-03`, showing "늦게 출발"/Delayed, FlightAware/OAG-sourced, timestamped "7분 전에 업데이트됨"/updated 7 min ago) — i.e. **live flight-tracking data, not an airline-issued confirmed schedule change**, and the screenshot itself carries Google's standard caveat that flight status can keep changing and to arrive at the gate per the originally scheduled time.
+
+- Original schedule: `UX6156`, `PMI → BCN`, `10:15 → 11:05`.
+- Real-time delayed estimate (as of the screenshot): `10:55 → 11:30`, Palma gate `D84`, Palma terminal `N`, Barcelona terminal `1`.
+- **New `SCHEDULE_DAY_NOTES["2026-09-03"]` entry** (this date previously had no day-note card at all — only two checklist mentions) with a single card, "Air Europa UX6156 귀환편 — PMI → BCN (실시간 지연 반영)": shows both the original scheduled time and the real-time delayed time side by side (rather than overwriting the original, since this isn't a confirmed reissue like the 8/29 case), the Palma gate, a cross-reference to the existing Record Go 08:00 rental car return checklist item, and a note explicitly flagging the data source/timestamp and that the status can still change further.
+- Updated the two existing checklist leaf items that reference this flight (`✈️ 1. 항공` section's `"Air Europa PMI → BCN 9/3(목) 10:15 → 11:05 확인"` and the `🗺️` moving-day-decisions section's `"9/3(목) PMI → BCN 10:15 비행"`) to append the same delay caveat. Both are text-only edits at their existing flattened indexes — no index drift.
+- Deliberately did not treat this as a confirmed rebooking (unlike the 8/29 UX6007 case, where Air Europa itself sent a delay notice with a reservation number) — the note's wording keeps both times visible and repeatedly tells the user to reconfirm at the airport, since live flight-tracker estimates can revert or change again before departure.
+
 ### EUR Expense Amounts Show a KRW Estimate
 
 Committed and pushed directly to `main`:
@@ -1007,7 +1022,7 @@ Recommended next steps:
 15. Have `yeonholee1024@gmail.com` sign in once the rules are deployed, and confirm: (a) all 4 tabs load and display data correctly, (b) every add/edit/delete/check control is genuinely disabled or hidden, (c) attempting a write (e.g. via browser dev tools calling the Firestore SDK directly, bypassing the UI) is rejected by the rules, not just the UI.
 16. Confirm with the user whether `연호`'s read-only access should ever be upgradable to edit access later (e.g. a simple move from `READ_ONLY_USERS` removal + `isEditUser()` rules update), or whether read-only is permanent for this account for the whole trip.
 17. **New (from 8/29 delay update):** the UX6007 boarding pass card's `🕐 탑승 시각` row is now marked unconfirmed (was `07:55`, tied to the old `08:40` departure). Once the user has the reissued boarding pass (new boarding time/gate) for the delayed `09:20` departure, update `SCHEDULE_DAY_NOTES["2026-08-29"][1].rows` in `index.html` with the real value instead of the placeholder warning text.
-18. Confirm whether the return leg `UX6156` (`PMI → BCN`, 9/3, currently still `10:15 → 11:05`) is also affected by a schedule change — the delay screenshot listed it under "이전 여행 일정" with no visible new time, so it was left unchanged in this pass; re-check with the user or the Air Europa app closer to the date.
+18. ~~Confirm whether the return leg `UX6156` is also affected by a schedule change~~ — **done 2026-09-03**: a real-time delay (`10:15→11:05` → `10:55→11:30`) was reflected on the new `SCHEDULE_DAY_NOTES["2026-09-03"]` card, sourced from live flight-tracking (not an airline confirmation), so it may still change again before departure — re-check the actual gate/time at PMI airport on travel day itself.
 19. Test the receipt photo attachment (add, edit-replace, edit-remove, and the lightbox) live with both allowed accounts, especially on an actual phone camera photo (large original file) to confirm the 700KB post-compression cap doesn't reject normal receipt photos too often — if it does, consider lowering `maxDim`/`quality` further in `compressImageFile()`, or revisit the Firebase Storage + Blaze option now that the user has seen the trade-offs.
 20. If the household later decides the free-tier photo quality is too low or 700KB rejections become common, the documented path is: enable Billing → Blaze in the Firebase console, add a `storage.rules` file mirroring the existing `isAllowedUser()`/`isEditUser()` split, deploy it from the console (same as the outstanding `firestore.rules` deploy), and swap `receiptImage` from a base64 string to a Storage download URL.
 
