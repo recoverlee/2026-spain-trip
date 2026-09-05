@@ -1,4 +1,4 @@
-const CACHE_NAME = "spain-trip-pwa-v24";
+const CACHE_NAME = "spain-trip-pwa-v25";
 const APP_SHELL = [
   "./",
   "./index.html",
