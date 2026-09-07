@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-09-07 (donut chart now shows on-slice percentage-of-total labels; cache v32)
+Last updated: 2026-09-07 (expense list grouped by date with per-day KRW subtotal headers; cache v33)
 
 ## Project Overview
 
@@ -19,7 +19,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `285a9b8 chore: bump PWA cache version to v32 for donut chart percentage labels`
+- `479bf31 chore: bump PWA cache version to v33 for expense list date-group headers`
 
 ⚠️ **Open item (from 2026-09-07):** the user asked to also reflect the flight ticket cost (₩4,041,500 항공권 + ₩30,000 대행수수료) in the 지출 tab, and asked whether all accommodation costs are already logged there. Neither could be done/checked in this session — see the "Flight Ticket Payment Receipt" entry below for why, and follow up with the user directly on whether they've added these expense entries.
 
@@ -191,6 +191,7 @@ Current UI:
   - category totals
 - EUR-denominated line items show a small gray KRW estimate under the main amount (`formatEurKrwEstimate()`, fixed rate `EUR_TO_KRW_RATE = 1600`, display-only, not stored in Firestore) — added 2026-08-29
 - category-spending donut chart in KRW below the 카테고리별 지출 summary card (`buildCategoryChartCard()`, inline SVG, fixed rates `EUR_TO_KRW_RATE = 1600` / `USD_TO_KRW_RATE = 1400`, display-only) — added 2026-09-07
+- expense list is grouped into date sections, each with a `"YYYY.MM.DD (요일)"` header and that day's KRW-converted subtotal (`formatExpenseGroupDate()`, grouping logic in `renderExpenses()`, reuses `convertToKrwEstimate()`; respects the active category filter) — added 2026-09-07
 
 ### Shopping
 
@@ -327,7 +328,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v32` (bumped for the donut chart's on-slice percentage-of-total labels; `v31` was for the category-spending donut chart in KRW, `v30` was for the 9/7 OZ512 departure-day DIVA/Tax Free schedule card, `v29` was for the 8/28 flight receipt card reorder and the new 항공 expense category, `v28` was for multi-photo receipts and the expense category filter, `v27` was for the 8/28 flight ticket payment receipt card, `v26` was for the header flight-duration display, `v25` was for the 9/5 Barcelona Zoo and 9/6 FC Barcelona Museum schedule cards, `v24` was for the 9/3 BCN airport → CASP74 Apartments taxi transfer card, `v23` was for the 9/3 UX6156 return-flight real-time delay update, `v22` was for the 총 지출/오늘 지출 summary-card KRW hint, `v21` was for the expense receipt-photo attachment feature, `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v33` (bumped for the expense list's date-group headers with per-day KRW subtotals; `v32` was for the donut chart's on-slice percentage-of-total labels, `v31` was for the category-spending donut chart in KRW, `v30` was for the 9/7 OZ512 departure-day DIVA/Tax Free schedule card, `v29` was for the 8/28 flight receipt card reorder and the new 항공 expense category, `v28` was for multi-photo receipts and the expense category filter, `v27` was for the 8/28 flight ticket payment receipt card, `v26` was for the header flight-duration display, `v25` was for the 9/5 Barcelona Zoo and 9/6 FC Barcelona Museum schedule cards, `v24` was for the 9/3 BCN airport → CASP74 Apartments taxi transfer card, `v23` was for the 9/3 UX6156 return-flight real-time delay update, `v22` was for the 총 지출/오늘 지출 summary-card KRW hint, `v21` was for the expense receipt-photo attachment feature, `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -1047,6 +1048,21 @@ Follow-up to the donut chart added earlier the same day: the user asked for perc
 - New `.chart-slice-label` CSS: small (6.5px in the 100×100 viewBox coordinate system), bold, white fill with a thin dark stroke (`paint-order:stroke`) so the percentage stays legible against any of the 8 slice colors.
 - Legend row text changed from `금액 (N%)` to `금액 · 전체 지출 대비 N%` for clarity, and the card title/note now explicitly say "전체 지출 대비 비율" (percentage relative to total spending across all categories) so it's unambiguous that 100% is the sum of every category, not some other denominator.
 - Still a pure display computation — no Firestore change.
+
+### Expense List Date-Group Headers with Per-Day KRW Subtotal
+
+Committed and pushed directly to `main`:
+
+- `f2f520c 지출 목록에 날짜별 구분 헤더 + 해당 날짜 합계(원화) 추가`
+- `479bf31 chore: bump PWA cache version to v33 for expense list date-group headers`
+
+The user shared a screenshot of a banking-app-style date divider ("2026.09.03 (목)" left, "461,617원" right) and asked for the same grouping in the 지출 list.
+
+- New `formatExpenseGroupDate(dateValue)` produces the exact requested format: `YYYY.MM.DD (요일)` (e.g. `2026.09.03 (목)`) — distinct from the existing `formatTripDate()` used elsewhere (`M/D 요일`, e.g. `9/3 목`), since the user's screenshot specifically showed the zero-padded dotted format.
+- `renderExpenses()` now groups `filteredExpenses` into consecutive same-date runs (`dateGroups`) before rendering — safe to do by simple adjacent-grouping (no need to re-sort) because the Firestore query is already `orderBy("dateTime", "desc")` and `.filter()` preserves order, so same-date items are always already contiguous.
+- Each group renders a new `.expense-date-header` row (date label left, bold KRW total right) immediately before its expense cards. The per-day total sums every item in that date's group via `convertToKrwEstimate()` (the same multi-currency→KRW helper the donut chart uses), so a day with mixed EUR/KRW/USD expenses still gets one clean KRW number, matching the screenshot's single-currency style.
+- **Respects the active category filter**: since grouping runs on `filteredExpenses` (not the full `expenses` array), selecting a category in the filter dropdown (added in an earlier entry) also narrows each date header's subtotal to just that category — consistent with the rest of the filter feature.
+- Pure display/grouping logic over already-loaded data — no Firestore schema change, no write.
 
 ### EUR Expense Amounts Show a KRW Estimate
 
