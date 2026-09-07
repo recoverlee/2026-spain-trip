@@ -334,6 +334,7 @@
         <div>
           <span class="field-label">카테고리</span>
           <select id="expenseCategory">
+            <option value="항공">항공</option>
             <option value="식비">식비</option>
             <option value="교통">교통</option>
             <option value="숙박">숙박</option>
@@ -537,7 +538,7 @@ const ACCOMMODATION_BOOKINGS = {
   "8/28(금)~8/29(토) — Alberg Centre Esplai": {
     hotelName: "Alberg Centre Esplai",
     checkin: "2026-08-28",
-    scheduleOrder: 2, // "인천공항 출발 계획", "바르셀로나 공항 → 이동" 카드 다음(맨 뒤)에 표시
+    scheduleOrder: 3, // "왕복 항공권 결제 영수증", "인천공항 출발 계획", "바르셀로나 공항 → 이동" 카드 다음(맨 뒤)에 표시
     breakfast: "included",
     breakfastText: "조식 포함",
     rows: [
@@ -664,6 +665,20 @@ const SECTION_BOOKING_STYLE_CARDS = {
 const SCHEDULE_DAY_NOTES = {
   "2026-08-28": [
     {
+      title: "왕복 항공권 결제 영수증 (OZ511/OZ512, NOL interpark tour)",
+      rows: [
+        ["예약번호", "A3350645", true],
+        ["항공 여정", "서울 - 바르셀로나 (왕복)"],
+        ["항공사", "아시아나항공"],
+        ["탑승객", "YIHYELEE, LEEJAEHWAN, LEEYEONHO"],
+        ["항공권 결제 금액", "4,041,500원 (할부 5개월, 승인 2026.02.01 13:26)"],
+        ["대행수수료", "30,000원 (일시불, 승인 2026.02.01 13:26)"],
+        ["총 결제 금액", "4,071,500원"],
+        ["발행처", "(주)놀유니버스 · NOL interpark tour"]
+      ],
+      note: "영수증 기준 카드번호 5137-9200-****-****. 지출 탭에는 이 두 건(항공권 4,041,500원 / 대행수수료 30,000원)을 각각 등록해두는 것을 추천 — 자동으로 반영되지는 않으므로 지출 탭에서 직접 추가해야 함."
+    },
+    {
       title: "인천공항 출발 계획 (승용차 기준)",
       rows: [
         ["🚗 07:10", "수원 출발"],
@@ -686,20 +701,6 @@ const SCHEDULE_DAY_NOTES = {
       ],
       note: "바르셀로나 공항 도착 후 첫 번째 숙소인 Alberg Centre Esplai로 이동하는 방법입니다.",
       link: "https://m.blog.naver.com/eudemonic005/224333827362"
-    },
-    {
-      title: "왕복 항공권 결제 영수증 (OZ511/OZ512, NOL interpark tour)",
-      rows: [
-        ["예약번호", "A3350645", true],
-        ["항공 여정", "서울 - 바르셀로나 (왕복)"],
-        ["항공사", "아시아나항공"],
-        ["탑승객", "YIHYELEE, LEEJAEHWAN, LEEYEONHO"],
-        ["항공권 결제 금액", "4,041,500원 (할부 5개월, 승인 2026.02.01 13:26)"],
-        ["대행수수료", "30,000원 (일시불, 승인 2026.02.01 13:26)"],
-        ["총 결제 금액", "4,071,500원"],
-        ["발행처", "(주)놀유니버스 · NOL interpark tour"]
-      ],
-      note: "영수증 기준 카드번호 5137-9200-****-****. 지출 탭에는 이 두 건(항공권 4,041,500원 / 대행수수료 30,000원)을 각각 등록해두는 것을 추천 — 자동으로 반영되지는 않으므로 지출 탭에서 직접 추가해야 함."
     }
   ],
   "2026-08-29": [
@@ -879,7 +880,7 @@ const TRIP_DATES = [
 ];
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
-const EXPENSE_CATEGORIES = ["식비", "교통", "숙박", "관광", "쇼핑", "통신", "기타"];
+const EXPENSE_CATEGORIES = ["항공", "식비", "교통", "숙박", "관광", "쇼핑", "통신", "기타"];
 
 /* Existing checklist data from the original file */
 const data = [
