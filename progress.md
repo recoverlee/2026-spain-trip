@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-09-07 (header flight summary now shows flight duration; cache v26)
+Last updated: 2026-09-07 (round-trip flight ticket payment receipt added to 8/28 schedule card; cache v27)
 
 ## Project Overview
 
@@ -19,7 +19,9 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `b6c5133 chore: bump PWA cache version to v26 for header flight duration`
+- `fedc4f5 chore: bump PWA cache version to v27 for flight ticket receipt card`
+
+⚠️ **Open item (from 2026-09-07):** the user asked to also reflect the flight ticket cost (₩4,041,500 항공권 + ₩30,000 대행수수료) in the 지출 tab, and asked whether all accommodation costs are already logged there. Neither could be done/checked in this session — see the "Flight Ticket Payment Receipt" entry below for why, and follow up with the user directly on whether they've added these expense entries.
 
 ⚠️ **Action needed (high priority):** the read-only account feature's actual security boundary is in `firestore.rules` (`isEditUser()` vs `isAllowedUser()`), which — like every other Firestore rules change this session — **has not been deployed to production**. Until `firebase deploy --only firestore:rules` is run, `yeonholee1024@gmail.com` may either (a) be unable to read anything if production is on some other restrictive rule set, or (b) worse, actually be able to write if production is still on permissive/test-mode rules. Deploy the rules before relying on the read-only restriction for anything sensitive.
 
@@ -324,7 +326,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v26` (bumped for the header flight-duration display; `v25` was for the 9/5 Barcelona Zoo and 9/6 FC Barcelona Museum schedule cards, `v24` was for the 9/3 BCN airport → CASP74 Apartments taxi transfer card, `v23` was for the 9/3 UX6156 return-flight real-time delay update, `v22` was for the 총 지출/오늘 지출 summary-card KRW hint, `v21` was for the expense receipt-photo attachment feature, `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v27` (bumped for the 8/28 flight ticket payment receipt card; `v26` was for the header flight-duration display, `v25` was for the 9/5 Barcelona Zoo and 9/6 FC Barcelona Museum schedule cards, `v24` was for the 9/3 BCN airport → CASP74 Apartments taxi transfer card, `v23` was for the 9/3 UX6156 return-flight real-time delay update, `v22` was for the 총 지출/오늘 지출 summary-card KRW hint, `v21` was for the expense receipt-photo attachment feature, `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -952,6 +954,21 @@ The user shared two Asiana booking screenshots (departure OZ511, return OZ512) c
 - New CSS `.flight-duration` (11px, gray `#6b7280`, centered, `white-space:nowrap`); the `max-width:700px` mobile breakpoint widens the `.flight-route` middle column from `70px` to `80px` and drops `.flight-duration` to 10px so the duration text doesn't get clipped on narrow phones.
 - Static header text only — this section was already hardcoded HTML (not Firestore-backed, not part of `SCHEDULE_DAY_NOTES`), so this is a plain markup/CSS edit with no data-model impact.
 
+### Flight Ticket Payment Receipt Added to 8/28 Schedule (지출 Tab NOT Updated — Explained Why)
+
+Committed and pushed directly to `main`:
+
+- `e919b51 8/28 일정에 왕복 항공권 결제 영수증 카드 추가`
+- `fedc4f5 chore: bump PWA cache version to v27 for flight ticket receipt card`
+
+The user shared two NOL interpark tour receipt screenshots (항공권 영수증 + 대행수수료 영수증, reservation `A3350645`) and asked to reflect the flight cost in **both** the 일정 tab and the 지출 tab, and separately asked whether all accommodation costs are already logged as expenses.
+
+**일정 tab — done.** Added a third card to `SCHEDULE_DAY_NOTES["2026-08-28"]`, "왕복 항공권 결제 영수증 (OZ511/OZ512, NOL interpark tour)": reservation number, route, airline, all 3 passenger names, the two separate payment lines (항공권 4,041,500원 · 5개월 할부 vs. 대행수수료 30,000원 · 일시불, both approved 2026.02.01 13:26) and their total (4,071,500원), and the issuer.
+
+**지출 tab — NOT done, and structurally can't be from this session.** Expense entries live in Firestore (`tripData/expenses/items`), which this session only ever edits by pushing static code to `index.html` — there is no Firebase Admin credential available here, and even if there were, this session's standing policy (in place since early in this project — see "No live Firestore writes/tests performed" in prior entries) is to never write to production data directly. Writing an actual expense document requires someone to be logged into the live app and use its `+ 지출 추가` form. The 8/28 schedule card's note explicitly says so and gives the exact two amounts to add (4,041,500원 항공권 / 30,000원 대행수수료) so the user (or 혜리) can add them via the app in under a minute.
+
+**Accommodation-costs question — could not be answered.** Same root cause: whether every hotel/apartment cost is already logged as a 지출 entry can only be checked by looking at the live `tripData/expenses/items` documents in the running app, which this session cannot query (no read access to production Firestore either — only the static `ACCOMMODATION_BOOKINGS` reference data baked into `index.html`, which records what was *booked*, not what's been logged as spent). Told the user this directly rather than guessing; recommended they open the 지출 tab themselves and compare against `ACCOMMODATION_BOOKINGS`' 요금 rows (Alberg Centre Esplai, Gran Hotel Sóller, Meliá Palma Marina, Casp 74 Apartments) to spot anything missing.
+
 ### EUR Expense Amounts Show a KRW Estimate
 
 Committed and pushed directly to `main`:
@@ -1066,6 +1083,8 @@ Recommended next steps:
 18. ~~Confirm whether the return leg `UX6156` is also affected by a schedule change~~ — **done 2026-09-03**: a real-time delay (`10:15→11:05` → `10:55→11:30`) was reflected on the new `SCHEDULE_DAY_NOTES["2026-09-03"]` card, sourced from live flight-tracking (not an airline confirmation), so it may still change again before departure — re-check the actual gate/time at PMI airport on travel day itself.
 19. Test the receipt photo attachment (add, edit-replace, edit-remove, and the lightbox) live with both allowed accounts, especially on an actual phone camera photo (large original file) to confirm the 700KB post-compression cap doesn't reject normal receipt photos too often — if it does, consider lowering `maxDim`/`quality` further in `compressImageFile()`, or revisit the Firebase Storage + Blaze option now that the user has seen the trade-offs.
 20. If the household later decides the free-tier photo quality is too low or 700KB rejections become common, the documented path is: enable Billing → Blaze in the Firebase console, add a `storage.rules` file mirroring the existing `isAllowedUser()`/`isEditUser()` split, deploy it from the console (same as the outstanding `firestore.rules` deploy), and swap `receiptImage` from a base64 string to a Storage download URL.
+21. **From 2026-09-07:** add the two flight-ticket 지출 entries via the live app (4,041,500원 항공권, category 교통 recommended since there's no dedicated 항공 category; 30,000원 대행수수료) — the 8/28 schedule card documents the exact amounts but this session cannot write them to Firestore itself.
+22. **From 2026-09-07:** manually check the 지출 tab against `ACCOMMODATION_BOOKINGS`' 요금 rows (Alberg Centre Esplai, Gran Hotel Sóller, Meliá Palma Marina, Casp 74 Apartments) to confirm every accommodation cost that was actually paid has a matching expense entry — this session has no way to read live Firestore data to check this itself.
 
 Potential future improvements:
 
