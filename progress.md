@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-09-05 (9/5 Barcelona Zoo and 9/6 10:00 FC Barcelona Museum schedule cards added; cache v25)
+Last updated: 2026-09-07 (header flight summary now shows flight duration; cache v26)
 
 ## Project Overview
 
@@ -19,7 +19,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `e43f39c chore: bump PWA cache version to v25 for 9/5 zoo and 9/6 FC Barcelona museum cards`
+- `b6c5133 chore: bump PWA cache version to v26 for header flight duration`
 
 ⚠️ **Action needed (high priority):** the read-only account feature's actual security boundary is in `firestore.rules` (`isEditUser()` vs `isAllowedUser()`), which — like every other Firestore rules change this session — **has not been deployed to production**. Until `firebase deploy --only firestore:rules` is run, `yeonholee1024@gmail.com` may either (a) be unable to read anything if production is on some other restrictive rule set, or (b) worse, actually be able to write if production is still on permissive/test-mode rules. Deploy the rules before relying on the read-only restriction for anything sensitive.
 
@@ -324,7 +324,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v25` (bumped for the 9/5 Barcelona Zoo and 9/6 FC Barcelona Museum schedule cards; `v24` was for the 9/3 BCN airport → CASP74 Apartments taxi transfer card, `v23` was for the 9/3 UX6156 return-flight real-time delay update, `v22` was for the 총 지출/오늘 지출 summary-card KRW hint, `v21` was for the expense receipt-photo attachment feature, `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v26` (bumped for the header flight-duration display; `v25` was for the 9/5 Barcelona Zoo and 9/6 FC Barcelona Museum schedule cards, `v24` was for the 9/3 BCN airport → CASP74 Apartments taxi transfer card, `v23` was for the 9/3 UX6156 return-flight real-time delay update, `v22` was for the 총 지출/오늘 지출 summary-card KRW hint, `v21` was for the expense receipt-photo attachment feature, `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -938,6 +938,19 @@ The user asked to add two new plans to the schedule: 바르셀로나 동물원 (
 - New `SCHEDULE_DAY_NOTES["2026-09-06"]`: one card, "FC 바르셀로나 박물관 (10:00)", with the requested 10:00 time, Camp Nou's public address (C/ Arístides Maillol, 12, 08028 Barcelona), and a note asking the user to reconfirm the actual ticket/tour voucher details from their booking app or email.
 - **Deliberately kept both cards minimal** — only well-known public addresses were added; no opening hours, ticket prices, or tour specifics were invented, since none were supplied and this app's established pattern (see prior entries) is to avoid presenting guessed details as fact. If the user has an actual booking confirmation (voucher number, exact time slot, ticket type) for either, it can be added the same way the other attraction/booking cards in this file were (structured rows + a `link` field if there's a confirmation page).
 - Purely additive to the static `SCHEDULE_DAY_NOTES` object — no Firestore write, no checklist index drift.
+
+### Header Flight Summary Shows Flight Duration
+
+Committed and pushed directly to `main`:
+
+- `c081266 헤더 항공편 요약에 소요시간 표기 추가`
+- `b6c5133 chore: bump PWA cache version to v26 for header flight duration`
+
+The user shared two Asiana booking screenshots (departure OZ511, return OZ512) circling/showing "총 시간" (total duration) and asked for that to appear in the header flight summary (see "Header Flight Summary" above for the original feature — the two static flight-info rows shown at the top of the app, above the tab bar).
+
+- Added a small `.flight-duration` line under the `→` arrow in each `.flight-path` cell: `14시간 20분` for OZ511 (2026-08-28, ICN 11:50 → BCN 19:10) and `12시간 30분` for OZ512 (2026-09-07 20:50 → 2026-09-08 16:20, ICN, one Asiana confirmation screen's stated total time).
+- New CSS `.flight-duration` (11px, gray `#6b7280`, centered, `white-space:nowrap`); the `max-width:700px` mobile breakpoint widens the `.flight-route` middle column from `70px` to `80px` and drops `.flight-duration` to 10px so the duration text doesn't get clipped on narrow phones.
+- Static header text only — this section was already hardcoded HTML (not Firestore-backed, not part of `SCHEDULE_DAY_NOTES`), so this is a plain markup/CSS edit with no data-model impact.
 
 ### EUR Expense Amounts Show a KRW Estimate
 
