@@ -90,6 +90,7 @@
   .chart-legend-dot { width:10px; height:10px; border-radius:999px; flex-shrink:0; }
   .chart-legend-label { font-weight:700; }
   .chart-legend-value { color:var(--muted); margin-left:auto; white-space:nowrap; }
+  .chart-slice-label { font-size:6.5px; font-weight:800; fill:#fff; paint-order:stroke; stroke:#00000055; stroke-width:0.6px; }
   .chart-total { margin-top:10px; font-size:14px; font-weight:800; }
   .chart-note { margin-top:4px; font-size:11px; color:var(--muted); }
   .expense-list { display:grid; gap:8px; }
@@ -2057,12 +2058,27 @@ function buildCategoryChartCard(totals) {
   const R = 40, CX = 50, CY = 50, STROKE = 16;
   const circumference = 2 * Math.PI * R;
   let offsetAcc = 0;
-  const segments = data.map(entry => {
-    const segLen = (entry.krw / totalKrw) * circumference;
-    const circle = `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${entry.color}" stroke-width="${STROKE}" stroke-dasharray="${segLen} ${circumference - segLen}" stroke-dashoffset="${-offsetAcc}" />`;
+  let angleAcc = -90; // 12시 방향에서 시작 (아래 <g rotate(-90)>와 맞춰 라벨 각도를 별도로 직접 계산)
+  const segments = [];
+  const pctLabels = [];
+  data.forEach(entry => {
+    const fraction = entry.krw / totalKrw;
+    const pct = Math.round(fraction * 100);
+    const segLen = fraction * circumference;
+    segments.push(`<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${entry.color}" stroke-width="${STROKE}" stroke-dasharray="${segLen} ${circumference - segLen}" stroke-dashoffset="${-offsetAcc}" />`);
     offsetAcc += segLen;
-    return circle;
-  }).join("");
+
+    // 조각이 너무 작으면(5% 미만) 라벨이 겹치므로 차트 위 텍스트 라벨은 생략 (범례에는 항상 표시).
+    if (pct >= 5) {
+      const sliceDeg = fraction * 360;
+      const midDeg = angleAcc + sliceDeg / 2;
+      const midRad = (midDeg * Math.PI) / 180;
+      const labelX = CX + R * Math.cos(midRad);
+      const labelY = CY + R * Math.sin(midRad);
+      pctLabels.push(`<text x="${labelX.toFixed(2)}" y="${labelY.toFixed(2)}" text-anchor="middle" dominant-baseline="middle" class="chart-slice-label">${pct}%</text>`);
+    }
+    angleAcc += fraction * 360;
+  });
 
   const legend = data.map(entry => {
     const pct = Math.round((entry.krw / totalKrw) * 100);
@@ -2070,22 +2086,23 @@ function buildCategoryChartCard(totals) {
       <div class="chart-legend-row">
         <span class="chart-legend-dot" style="background:${entry.color}"></span>
         <span class="chart-legend-label">${escapeHtml(entry.category)}</span>
-        <span class="chart-legend-value">${formatKrw(entry.krw)} (${pct}%)</span>
+        <span class="chart-legend-value">${formatKrw(entry.krw)} · 전체 지출 대비 ${pct}%</span>
       </div>
     `;
   }).join("");
 
   return `
     <div class="summary-card category-chart-card">
-      <div class="summary-label">카테고리별 지출 원형차트 (원화 환산)</div>
+      <div class="summary-label">카테고리별 지출 원형차트 (원화 환산, 전체 지출 대비 비율)</div>
       <div class="category-chart-body">
         <svg viewBox="0 0 100 100" class="category-chart-svg" role="img" aria-label="카테고리별 지출 비율 원형차트">
-          <g transform="rotate(-90 50 50)">${segments}</g>
+          <g transform="rotate(-90 50 50)">${segments.join("")}</g>
+          ${pctLabels.join("")}
         </svg>
         <div class="chart-legend">${legend}</div>
       </div>
       <div class="chart-total">합계(원화 환산): <strong>${formatKrw(totalKrw)}</strong></div>
-      <div class="chart-note">참고용 환산: EUR 1,600원 / USD 1,400원 가정 환율 (실시간 환율 아님)</div>
+      <div class="chart-note">참고용 환산: EUR 1,600원 / USD 1,400원 가정 환율 (실시간 환율 아님). 비율은 전체 지출(모든 카테고리 합계) 대비 각 카테고리의 비중입니다.</div>
     </div>
   `;
 }
