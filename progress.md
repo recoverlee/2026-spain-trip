@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-09-07 (round-trip flight ticket payment receipt added to 8/28 schedule card; cache v27)
+Last updated: 2026-09-07 (multi-photo receipts + expense category filter with subtotal; cache v28)
 
 ## Project Overview
 
@@ -19,7 +19,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `fedc4f5 chore: bump PWA cache version to v27 for flight ticket receipt card`
+- `4a29a17 chore: bump PWA cache version to v28 for multi-photo receipts + expense category filter`
 
 ⚠️ **Open item (from 2026-09-07):** the user asked to also reflect the flight ticket cost (₩4,041,500 항공권 + ₩30,000 대행수수료) in the 지출 tab, and asked whether all accommodation costs are already logged there. Neither could be done/checked in this session — see the "Flight Ticket Payment Receipt" entry below for why, and follow up with the user directly on whether they've added these expense entries.
 
@@ -172,7 +172,7 @@ Fields:
 - `category`: one of `식비`, `교통`, `숙박`, `관광`, `쇼핑`, `통신`, `기타`
 - `title`
 - `note`: optional
-- `receiptImage`: optional — base64 `data:image/jpeg;...` string of a compressed receipt photo (added 2026-08-31, see Completed Work History; capped at ~700KB encoded, no separate Storage bucket)
+- `receiptImages`: optional — array of base64 `data:image/jpeg;...` strings, one per compressed receipt photo (multi-photo support added 2026-09-07; combined array capped at ~900KB total encoded, no separate Storage bucket). Supersedes the older single-string `receiptImage` field (added 2026-08-31) — new saves always write `receiptImages` and clear `receiptImage` via `deleteField()`; rendering code (`getExpenseReceiptImages()`) still reads old documents that only have `receiptImage` for backward compatibility.
 - `createdAt`: Firestore `serverTimestamp()`
 - `createdBy`: display name
 - `updatedAt`: Firestore `serverTimestamp()`
@@ -326,7 +326,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v27` (bumped for the 8/28 flight ticket payment receipt card; `v26` was for the header flight-duration display, `v25` was for the 9/5 Barcelona Zoo and 9/6 FC Barcelona Museum schedule cards, `v24` was for the 9/3 BCN airport → CASP74 Apartments taxi transfer card, `v23` was for the 9/3 UX6156 return-flight real-time delay update, `v22` was for the 총 지출/오늘 지출 summary-card KRW hint, `v21` was for the expense receipt-photo attachment feature, `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v28` (bumped for multi-photo receipts and the expense category filter; `v27` was for the 8/28 flight ticket payment receipt card, `v26` was for the header flight-duration display, `v25` was for the 9/5 Barcelona Zoo and 9/6 FC Barcelona Museum schedule cards, `v24` was for the 9/3 BCN airport → CASP74 Apartments taxi transfer card, `v23` was for the 9/3 UX6156 return-flight real-time delay update, `v22` was for the 총 지출/오늘 지출 summary-card KRW hint, `v21` was for the expense receipt-photo attachment feature, `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -969,6 +969,27 @@ The user shared two NOL interpark tour receipt screenshots (항공권 영수증 
 
 **Accommodation-costs question — could not be answered.** Same root cause: whether every hotel/apartment cost is already logged as a 지출 entry can only be checked by looking at the live `tripData/expenses/items` documents in the running app, which this session cannot query (no read access to production Firestore either — only the static `ACCOMMODATION_BOOKINGS` reference data baked into `index.html`, which records what was *booked*, not what's been logged as spent). Told the user this directly rather than guessing; recommended they open the 지출 tab themselves and compare against `ACCOMMODATION_BOOKINGS`' 요금 rows (Alberg Centre Esplai, Gran Hotel Sóller, Meliá Palma Marina, Casp 74 Apartments) to spot anything missing.
 
+### Multi-Photo Receipts + Expense Category Filter with Subtotal
+
+Committed and pushed directly to `main`:
+
+- `25aa3d7 지출: 영수증 사진 여러 장 첨부 + 카테고리 필터(항목/합계) 기능 추가`
+- `4a29a17 chore: bump PWA cache version to v28 for multi-photo receipts + expense category filter`
+
+The user asked for two things: (1) let an expense have more than one attached receipt photo, and (2) a way to filter the 지출 list by category and see the filtered items plus their subtotal.
+
+**Multi-photo receipts:**
+- Data model changed from a single `receiptImage` string to a `receiptImages` array of compressed base64 JPEGs. New saves always write `receiptImages` (even `[]` when none) and, on an edit (`updateDoc`), also send `receiptImage: deleteField()` to clean up the legacy single field so a document never carries both. Reading is backward-compatible via a new `getExpenseReceiptImages(expense)` helper (`receiptImages` if present, else wraps the old `receiptImage` in a 1-element array, else `[]`) — old expense documents saved before this change keep displaying their one photo without any migration step.
+- Form: `#expenseReceiptInput` gained the `multiple` attribute; `handleReceiptFileChange()` now iterates every selected file, compresses each (`compressImageFile` defaults tightened from `maxDim:1000/quality:0.6` to `maxDim:900/quality:0.55` to leave more headroom for multiple photos per document), and pushes each onto a new `receiptImagesDraft` array (replacing the old single `pendingReceiptDataUrl`/`removeReceiptFlag` pair). A running-total guard (`MAX_TOTAL_RECEIPT_CHARS = 900 * 1024`) skips any photo that would push the combined base64 size over budget and tells the user how many were actually added — protects the same Firestore 1MB document ceiling as before, now shared across N photos instead of one.
+- Preview UI: `.receipt-preview-wrap` is now a wrapping grid of `.receipt-preview-item` thumbnails, each with its own ✕ remove button (`renderReceiptPreview()`, event-delegated via `data-remove-receipt-index`) — replaces the old single preview + one "사진 삭제" button.
+- List/lightbox: `renderExpenses()` renders a `.receipt-thumb-row` of thumbnails per expense (via `getExpenseReceiptImages()`), each tagged `data-receipt-view="${id}"` + `data-receipt-index="${index}"`; the click handler now looks up the specific image by index before opening the lightbox, instead of assuming one photo per expense.
+
+**Expense category filter:**
+- New `<select id="expenseCategoryFilter">` in the 지출 toolbar (below the summary cards, above the add/edit form), populated once from `EXPENSE_CATEGORIES` plus a leading "전체" (all) option; a new `expenseCategoryFilter` module-level string (default `"전체"`) tracks the current selection and is reset in `clearSharedDataViews()` on logout.
+- `renderExpenses()` now computes `filteredExpenses` from `expenseCategoryFilter` and renders the list from that instead of the full `expenses` array; the empty-state message distinguishes "no expenses at all" from "none in this category."
+- When a specific category is selected, a `#expenseFilterSummary` span next to the dropdown shows `"<카테고리> N건 · 합계 <formatMoneyGroup with KRW hint>"` — reuses the existing `formatMoneyGroup(group, true)` helper from the earlier EUR→KRW work so the filtered subtotal gets the same "(약 ₩x,xxx)" treatment as the top summary cards. The existing 총 지출/오늘 지출/카테고리별 지출 summary cards are intentionally left computed over the full unfiltered `expenses` array — the filter only narrows the list below them, it doesn't change the summary at the top (카테고리별 지출 already shows every category's total at a glance).
+- Purely a display/state feature — no Firestore schema change, no write.
+
 ### EUR Expense Amounts Show a KRW Estimate
 
 Committed and pushed directly to `main`:
@@ -1085,6 +1106,7 @@ Recommended next steps:
 20. If the household later decides the free-tier photo quality is too low or 700KB rejections become common, the documented path is: enable Billing → Blaze in the Firebase console, add a `storage.rules` file mirroring the existing `isAllowedUser()`/`isEditUser()` split, deploy it from the console (same as the outstanding `firestore.rules` deploy), and swap `receiptImage` from a base64 string to a Storage download URL.
 21. **From 2026-09-07:** add the two flight-ticket 지출 entries via the live app (4,041,500원 항공권, category 교통 recommended since there's no dedicated 항공 category; 30,000원 대행수수료) — the 8/28 schedule card documents the exact amounts but this session cannot write them to Firestore itself.
 22. **From 2026-09-07:** manually check the 지출 tab against `ACCOMMODATION_BOOKINGS`' 요금 rows (Alberg Centre Esplai, Gran Hotel Sóller, Meliá Palma Marina, Casp 74 Apartments) to confirm every accommodation cost that was actually paid has a matching expense entry — this session has no way to read live Firestore data to check this itself.
+23. Test the multi-photo receipt attach/remove/edit flow and the category filter live with both allowed accounts — in particular, edit an expense that was saved before this change (single `receiptImage` only) and confirm it still displays correctly and, after any edit+save, correctly converts to the new `receiptImages` array with the old field cleaned up.
 
 Potential future improvements:
 
