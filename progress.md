@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-09-07 (9/7 OZ512 departure-day DIVA/Tax Free schedule card added; cache v30)
+Last updated: 2026-09-07 (category-spending donut chart in KRW added to 지출 tab; cache v31)
 
 ## Project Overview
 
@@ -19,7 +19,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `9b88960 chore: bump PWA cache version to v30 for 9/7 OZ512 departure-day schedule card`
+- `0053649 chore: bump PWA cache version to v31 for category-spending donut chart`
 
 ⚠️ **Open item (from 2026-09-07):** the user asked to also reflect the flight ticket cost (₩4,041,500 항공권 + ₩30,000 대행수수료) in the 지출 tab, and asked whether all accommodation costs are already logged there. Neither could be done/checked in this session — see the "Flight Ticket Payment Receipt" entry below for why, and follow up with the user directly on whether they've added these expense entries.
 
@@ -190,6 +190,7 @@ Current UI:
   - today expenses
   - category totals
 - EUR-denominated line items show a small gray KRW estimate under the main amount (`formatEurKrwEstimate()`, fixed rate `EUR_TO_KRW_RATE = 1600`, display-only, not stored in Firestore) — added 2026-08-29
+- category-spending donut chart in KRW below the 카테고리별 지출 summary card (`buildCategoryChartCard()`, inline SVG, fixed rates `EUR_TO_KRW_RATE = 1600` / `USD_TO_KRW_RATE = 1400`, display-only) — added 2026-09-07
 
 ### Shopping
 
@@ -326,7 +327,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v30` (bumped for the 9/7 OZ512 departure-day DIVA/Tax Free schedule card; `v29` was for the 8/28 flight receipt card reorder and the new 항공 expense category, `v28` was for multi-photo receipts and the expense category filter, `v27` was for the 8/28 flight ticket payment receipt card, `v26` was for the header flight-duration display, `v25` was for the 9/5 Barcelona Zoo and 9/6 FC Barcelona Museum schedule cards, `v24` was for the 9/3 BCN airport → CASP74 Apartments taxi transfer card, `v23` was for the 9/3 UX6156 return-flight real-time delay update, `v22` was for the 총 지출/오늘 지출 summary-card KRW hint, `v21` was for the expense receipt-photo attachment feature, `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v31` (bumped for the category-spending donut chart in KRW; `v30` was for the 9/7 OZ512 departure-day DIVA/Tax Free schedule card, `v29` was for the 8/28 flight receipt card reorder and the new 항공 expense category, `v28` was for multi-photo receipts and the expense category filter, `v27` was for the 8/28 flight ticket payment receipt card, `v26` was for the header flight-duration display, `v25` was for the 9/5 Barcelona Zoo and 9/6 FC Barcelona Museum schedule cards, `v24` was for the 9/3 BCN airport → CASP74 Apartments taxi transfer card, `v23` was for the 9/3 UX6156 return-flight real-time delay update, `v22` was for the 총 지출/오늘 지출 summary-card KRW hint, `v21` was for the expense receipt-photo attachment feature, `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -1015,6 +1016,22 @@ The user shared a screenshot (an external route-planning tool's flowchart plus a
 - The note carries the screenshot's recommended timeline verbatim in spirit (17:00~17:30 공항 도착 → 17:30~18:00 DIVA/세관 → 18:00 이후 체크인·수하물 → 보안검색/출국심사 → 18:30~19:00 환급 절차 완료 → 여유 있게 식사/면세점 → 19:50 전후 게이트 → 20:50 출발), plus the screenshot's single most-emphasized warning: **Tax Free 구매 물건을 DIVA 확인 전에 위탁 수하물(캐리어)에 넣지 말 것** — customs may need to physically inspect the goods, so they must stay in carry-on/reachable baggage until after DIVA approval.
 - **Did not add a `link` field** — the screenshot showed a "바르셀로나 공항 공식 VAT Refund 안내" reference link but no visible URL, and fabricating one would risk sending the user to the wrong page; if the user has the actual link, it can be added the same way other cards' `link` fields work.
 - Purely additive to `SCHEDULE_DAY_NOTES` — no Firestore write, no checklist index drift.
+
+### Category-Spending Donut Chart in KRW
+
+Committed and pushed directly to `main`:
+
+- `e6c55d4 지출 탭에 카테고리별 지출 원형(도넛)차트 추가 (원화 환산)`
+- `0053649 chore: bump PWA cache version to v31 for category-spending donut chart`
+
+The user asked for the existing 카테고리별 지출 (per-category totals) summary card to also be shown as a pie/donut chart, converted to KRW.
+
+- New `buildCategoryChartCard(totals)` builds a `.category-chart-card` (`summary-card category-chart-card`, spans the full grid width like `.category-list`) rendered directly below the existing 카테고리별 지출 card in `expenseSummaryEl`.
+- **Multi-currency handling**: a category's spending can be split across EUR/KRW/USD (see `calculateExpenseTotals()`'s `byCategory` grouping); the chart needs one number per category to size its slice, so a new `convertToKrwEstimate(amount, currency)` converts each currency to KRW (`EUR_TO_KRW_RATE = 1600`, reused from the earlier EUR→KRW work; new `USD_TO_KRW_RATE = 1400` added for completeness even though USD may not be in active use) and sums per category before charting. Categories with ₩0 total are filtered out of the chart (but still show in the existing text list above).
+- **Rendering**: a donut, not a filled pie — an SVG `<circle>` per category with `stroke-dasharray`/`stroke-dashoffset` tracing consecutive arcs around a shared center (a `<g transform="rotate(-90 50 50)">` wrapper so the first slice starts at 12 o'clock), no external chart library. Colors come from a new `CATEGORY_CHART_COLORS` array, index-matched to `EXPENSE_CATEGORIES` (항공/식비/교통/숙박/관광/쇼핑/통신/기타 → indigo/amber/emerald/red/cyan/pink/violet/slate).
+- **Legend**: below/beside the chart, one row per category with its color dot, name, KRW amount, and percentage of the chart's total.
+- **Total + disclosure**: a `합계(원화 환산)` line under the chart, and a small note stating the assumed EUR/USD→KRW rates explicitly (consistent with how every other rate-assumption feature this session discloses its rate rather than presenting a guess as fact).
+- Purely a display computation over already-loaded `expenses` data — no new Firestore field, no write, no migration; renders automatically on every `renderExpenses()` call (realtime updates, filter changes, etc. all keep it in sync for free since it's rebuilt from `totals` each time).
 
 ### EUR Expense Amounts Show a KRW Estimate
 
