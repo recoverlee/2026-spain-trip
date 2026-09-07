@@ -109,6 +109,10 @@
   .lightbox img { max-width:100%; max-height:100%; border-radius:10px; }
   .lightbox-close { position:absolute; top:16px; right:16px; width:36px; height:36px; border-radius:999px; border:none; background:#fff; font-size:16px; font-weight:800; cursor:pointer; }
   .expense-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .expense-date-header { display:flex; justify-content:space-between; align-items:baseline; padding:14px 4px 6px; }
+  .expense-date-header:first-child { padding-top:2px; }
+  .expense-date-label { font-size:15px; font-weight:800; }
+  .expense-date-total { font-size:16px; font-weight:900; }
   .expense-filter-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:10px 0; }
   .expense-filter-row select { padding:8px 10px; border-radius:10px; border:1px solid var(--line); font-size:14px; background:#fff; }
   .expense-filter-summary { font-size:13px; font-weight:700; color:var(--accent); }
@@ -1651,6 +1655,15 @@ function formatDateTimeLabel(value) {
   return `${formatTripDate(datePart)} ${timePart}`.trim();
 }
 
+// 지출 목록의 날짜 구분선에 쓰는 형식: "2026.09.03 (목)"
+function formatExpenseGroupDate(dateValue) {
+  const date = new Date(`${dateValue}T00:00:00`);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}.${month}.${day} (${WEEKDAYS[date.getDay()]})`;
+}
+
 function formatMoney(amount, currency = "EUR") {
   return new Intl.NumberFormat("ko-KR", {
     style: "currency",
@@ -2152,7 +2165,24 @@ function renderExpenses() {
     return;
   }
 
-  expenseListEl.innerHTML = filteredExpenses.map(expense => `
+  // dateTime desc 정렬(Firestore 쿼리)을 그대로 이용해 같은 날짜끼리 순서대로 묶는다.
+  const dateGroups = [];
+  filteredExpenses.forEach(expense => {
+    const dateKey = (expense.dateTime || "").slice(0, 10);
+    const lastGroup = dateGroups[dateGroups.length - 1];
+    const group = lastGroup && lastGroup.date === dateKey
+      ? lastGroup
+      : dateGroups[dateGroups.push({ date: dateKey, items: [], totalKrw: 0 }) - 1];
+    group.items.push(expense);
+    group.totalKrw += convertToKrwEstimate(expense.amount, expense.currency || "EUR");
+  });
+
+  expenseListEl.innerHTML = dateGroups.map(group => `
+    <div class="expense-date-header">
+      <span class="expense-date-label">${group.date ? formatExpenseGroupDate(group.date) : "날짜 미입력"}</span>
+      <span class="expense-date-total">${formatKrw(group.totalKrw)}</span>
+    </div>
+    ${group.items.map(expense => `
     <div class="expense-item">
       <div class="expense-top">
         <div>
@@ -2175,6 +2205,7 @@ function renderExpenses() {
         <button class="mini-btn" data-expense-delete="${expense.id}">삭제</button>
       </div>`}
     </div>
+    `).join("")}
   `).join("");
 }
 
