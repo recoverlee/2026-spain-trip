@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-09-07 (flight receipt card moved to first on 8/28 + new 항공 expense category; cache v29)
+Last updated: 2026-09-07 (9/7 OZ512 departure-day DIVA/Tax Free schedule card added; cache v30)
 
 ## Project Overview
 
@@ -19,7 +19,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `2d6de18 chore: bump PWA cache version to v29 for flight receipt card reorder + 항공 expense category`
+- `9b88960 chore: bump PWA cache version to v30 for 9/7 OZ512 departure-day schedule card`
 
 ⚠️ **Open item (from 2026-09-07):** the user asked to also reflect the flight ticket cost (₩4,041,500 항공권 + ₩30,000 대행수수료) in the 지출 tab, and asked whether all accommodation costs are already logged there. Neither could be done/checked in this session — see the "Flight Ticket Payment Receipt" entry below for why, and follow up with the user directly on whether they've added these expense entries.
 
@@ -326,7 +326,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v29` (bumped for the 8/28 flight receipt card reorder and the new 항공 expense category; `v28` was for multi-photo receipts and the expense category filter, `v27` was for the 8/28 flight ticket payment receipt card, `v26` was for the header flight-duration display, `v25` was for the 9/5 Barcelona Zoo and 9/6 FC Barcelona Museum schedule cards, `v24` was for the 9/3 BCN airport → CASP74 Apartments taxi transfer card, `v23` was for the 9/3 UX6156 return-flight real-time delay update, `v22` was for the 총 지출/오늘 지출 summary-card KRW hint, `v21` was for the expense receipt-photo attachment feature, `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v30` (bumped for the 9/7 OZ512 departure-day DIVA/Tax Free schedule card; `v29` was for the 8/28 flight receipt card reorder and the new 항공 expense category, `v28` was for multi-photo receipts and the expense category filter, `v27` was for the 8/28 flight ticket payment receipt card, `v26` was for the header flight-duration display, `v25` was for the 9/5 Barcelona Zoo and 9/6 FC Barcelona Museum schedule cards, `v24` was for the 9/3 BCN airport → CASP74 Apartments taxi transfer card, `v23` was for the 9/3 UX6156 return-flight real-time delay update, `v22` was for the 총 지출/오늘 지출 summary-card KRW hint, `v21` was for the expense receipt-photo attachment feature, `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -1001,6 +1001,20 @@ Two small follow-ups the user asked for together:
 
 - **Card reorder**: `SCHEDULE_DAY_NOTES["2026-08-28"]`'s "왕복 항공권 결제 영수증 (OZ511/OZ512, NOL interpark tour)" card (added earlier the same day, previously 3rd/last) moved to be the first card, ahead of "인천공항 출발 계획" and "바르셀로나 공항 → Alberg Centre Esplai 이동". **Caught and fixed a related bug while doing this**: `ACCOMMODATION_BOOKINGS["8/28(금)~8/29(토) — Alberg Centre Esplai"]`'s `scheduleOrder` was still `2` (left over from before the flight-receipt card existed, when there were only 2 day-note cards) — with 3 day-note cards now present, `scheduleOrder: 2` would have spliced the booking card between the 2nd and 3rd cards instead of after all of them. Bumped it to `3` so the Alberg Centre Esplai booking card still renders last, as its comment always intended ("카드 다음(맨 뒤)에 표시").
 - **New 항공 (flight) expense category**: added to `EXPENSE_CATEGORIES` (now `["항공", "식비", "교통", "숙박", "관광", "쇼핑", "통신", "기타"]`, 항공 listed first) and to the static `<option>` list in the 지출 add/edit form's category `<select>`. The category-breakdown summary card and the 지출 tab's category filter dropdown (added in the previous session entry) both build their options from `EXPENSE_CATEGORIES` at render time, so 항공 appeared in both automatically with no separate edit needed. This directly enables what the previous entry's Future Work Notes item 21 recommended workaround ("category 교통 recommended since there's no dedicated 항공 category") — the user can now log the ₩4,041,500 항공권 / ₩30,000 대행수수료 expenses (still not auto-added — see that entry for why) under the correct 항공 category instead of 교통.
+
+### 9/7 OZ512 Departure-Day Schedule Card (DIVA / Tax Free Refund Procedure)
+
+Committed and pushed directly to `main`:
+
+- `1c4622d 9/7 귀국편 OZ512 출국 준비 카드 추가 (DIVA/Tax Free 환급 절차 포함)`
+- `9b88960 chore: bump PWA cache version to v30 for 9/7 OZ512 departure-day schedule card`
+
+The user shared a screenshot (an external route-planning tool's flowchart plus a recommended timeline) for the return-flight departure day and asked for it to be added to today's (9/7) schedule. This date previously had no `SCHEDULE_DAY_NOTES` entry at all.
+
+- New `SCHEDULE_DAY_NOTES["2026-09-07"]`: one card, "귀국편 OZ512 출국 준비 (DIVA/Tax Free 환급 포함) — 오늘 실제 이동 순서", with rows following the screenshot's flow exactly: 숙소 → 공항 T1 → 출국층/체크인 구역 → DIVA(Tax Free 자동확인기, 승인/추가확인 두 갈래) → OZ512 체크인 → 수하물 위탁 → 보안검색 → 출국심사 → Tax Free 환급업체 → 면세점/식사 → 게이트 → 20:50 OZ512 출발.
+- The note carries the screenshot's recommended timeline verbatim in spirit (17:00~17:30 공항 도착 → 17:30~18:00 DIVA/세관 → 18:00 이후 체크인·수하물 → 보안검색/출국심사 → 18:30~19:00 환급 절차 완료 → 여유 있게 식사/면세점 → 19:50 전후 게이트 → 20:50 출발), plus the screenshot's single most-emphasized warning: **Tax Free 구매 물건을 DIVA 확인 전에 위탁 수하물(캐리어)에 넣지 말 것** — customs may need to physically inspect the goods, so they must stay in carry-on/reachable baggage until after DIVA approval.
+- **Did not add a `link` field** — the screenshot showed a "바르셀로나 공항 공식 VAT Refund 안내" reference link but no visible URL, and fabricating one would risk sending the user to the wrong page; if the user has the actual link, it can be added the same way other cards' `link` fields work.
+- Purely additive to `SCHEDULE_DAY_NOTES` — no Firestore write, no checklist index drift.
 
 ### EUR Expense Amounts Show a KRW Estimate
 
