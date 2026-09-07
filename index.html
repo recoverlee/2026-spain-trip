@@ -23,6 +23,7 @@
   .flight-city { font-weight:800; }
   .flight-time { margin-top:2px; font-size:22px; font-weight:800; line-height:1.1; }
   .flight-path { color:#374151; font-size:24px; font-weight:800; text-align:center; line-height:1; }
+  .flight-duration { margin-top:4px; font-size:11px; font-weight:700; color:#6b7280; text-align:center; white-space:nowrap; }
   .flight-number { text-align:right; }
   .flight-code { display:inline-block; color:#111827; font-size:18px; font-weight:900; text-decoration:underline; }
   .flight-airline { margin-top:2px; font-size:13px; color:#111827; }
@@ -146,8 +147,9 @@
   @keyframes spin { to { transform:rotate(360deg); } }
   @media (max-width:700px) {
     .flight-row { grid-template-columns:1fr; gap:10px; padding:14px; }
-    .flight-route { grid-template-columns:1fr 70px 1fr; gap:10px; }
+    .flight-route { grid-template-columns:1fr 80px 1fr; gap:10px; }
     .flight-number { text-align:left; }
+    .flight-duration { font-size:10px; }
   }
   @media (max-width:600px) { h1{font-size:23px;} section{padding:15px 13px;} .wrap{padding:12px 10px 40px;} }
   @media (max-width:520px) {
@@ -194,7 +196,10 @@
           <div class="flight-city">서울 / 인천</div>
           <div class="flight-time">11:50</div>
         </div>
-        <div class="flight-path" aria-label="도착 방향">→</div>
+        <div class="flight-path" aria-label="도착 방향">
+          →
+          <div class="flight-duration">14시간 20분</div>
+        </div>
         <div>
           <div class="flight-city">바르셀로나</div>
           <div class="flight-time">19:10</div>
@@ -212,7 +217,10 @@
           <div class="flight-city">바르셀로나</div>
           <div class="flight-time">20:50</div>
         </div>
-        <div class="flight-path" aria-label="도착 방향">→</div>
+        <div class="flight-path" aria-label="도착 방향">
+          →
+          <div class="flight-duration">12시간 30분</div>
+        </div>
         <div>
           <div class="flight-city">서울 / 인천</div>
           <div class="flight-time">16:20<span class="next-day">+1DAY</span></div>
