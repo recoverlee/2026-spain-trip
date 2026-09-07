@@ -1,6 +1,6 @@
 # 2026 Spain Trip App Progress
 
-Last updated: 2026-09-07 (category-spending donut chart in KRW added to 지출 tab; cache v31)
+Last updated: 2026-09-07 (donut chart now shows on-slice percentage-of-total labels; cache v32)
 
 ## Project Overview
 
@@ -19,7 +19,7 @@ The app is intentionally still kept mostly inside `index.html` to avoid a large 
 
 Latest pushed commit on `main`:
 
-- `0053649 chore: bump PWA cache version to v31 for category-spending donut chart`
+- `285a9b8 chore: bump PWA cache version to v32 for donut chart percentage labels`
 
 ⚠️ **Open item (from 2026-09-07):** the user asked to also reflect the flight ticket cost (₩4,041,500 항공권 + ₩30,000 대행수수료) in the 지출 tab, and asked whether all accommodation costs are already logged there. Neither could be done/checked in this session — see the "Flight Ticket Payment Receipt" entry below for why, and follow up with the user directly on whether they've added these expense entries.
 
@@ -327,7 +327,7 @@ Current service worker behavior:
 
 - document requests use network-first behavior
 - static same-origin assets are cached
-- current cache name is `spain-trip-pwa-v31` (bumped for the category-spending donut chart in KRW; `v30` was for the 9/7 OZ512 departure-day DIVA/Tax Free schedule card, `v29` was for the 8/28 flight receipt card reorder and the new 항공 expense category, `v28` was for multi-photo receipts and the expense category filter, `v27` was for the 8/28 flight ticket payment receipt card, `v26` was for the header flight-duration display, `v25` was for the 9/5 Barcelona Zoo and 9/6 FC Barcelona Museum schedule cards, `v24` was for the 9/3 BCN airport → CASP74 Apartments taxi transfer card, `v23` was for the 9/3 UX6156 return-flight real-time delay update, `v22` was for the 총 지출/오늘 지출 summary-card KRW hint, `v21` was for the expense receipt-photo attachment feature, `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
+- current cache name is `spain-trip-pwa-v32` (bumped for the donut chart's on-slice percentage-of-total labels; `v31` was for the category-spending donut chart in KRW, `v30` was for the 9/7 OZ512 departure-day DIVA/Tax Free schedule card, `v29` was for the 8/28 flight receipt card reorder and the new 항공 expense category, `v28` was for multi-photo receipts and the expense category filter, `v27` was for the 8/28 flight ticket payment receipt card, `v26` was for the header flight-duration display, `v25` was for the 9/5 Barcelona Zoo and 9/6 FC Barcelona Museum schedule cards, `v24` was for the 9/3 BCN airport → CASP74 Apartments taxi transfer card, `v23` was for the 9/3 UX6156 return-flight real-time delay update, `v22` was for the 총 지출/오늘 지출 summary-card KRW hint, `v21` was for the expense receipt-photo attachment feature, `v20` was for the EUR→KRW estimate display on expense amounts, `v19` was for the shopping-tab rename to 유용한 링크/Useful Links, `v18` was for the Air Europa UX6007 8/29 flight delay update, `v17` was for the read-only account feature, `v16` was for the Mallorca luggage plan update, `v15` was for the restore bug fix and BCN storage checklist removal, `v14` was for the Air Europa UX6007 boarding pass card, `v13` was for the Air Europa dangerous goods card, `v12` was for the 9/4 schedule card, `v11` was for the 8/28 departure time update, `v10` was for the new shopping tab, `v9` was for the 8/29 card chronological reorder, `v8` was for the Record Go rental car schedule card, `v7` was for the 8/29 Mallorca transfer schedule card, `v6` was for the hotel review link consolidation, `v5` was for the booking card position fix, `v4` was bumped speculatively and did not by itself change the layout)
 
 When changing app shell behavior, consider bumping the cache version if stale installed-app behavior is likely.
 
@@ -1032,6 +1032,21 @@ The user asked for the existing 카테고리별 지출 (per-category totals) sum
 - **Legend**: below/beside the chart, one row per category with its color dot, name, KRW amount, and percentage of the chart's total.
 - **Total + disclosure**: a `합계(원화 환산)` line under the chart, and a small note stating the assumed EUR/USD→KRW rates explicitly (consistent with how every other rate-assumption feature this session discloses its rate rather than presenting a guess as fact).
 - Purely a display computation over already-loaded `expenses` data — no new Firestore field, no write, no migration; renders automatically on every `renderExpenses()` call (realtime updates, filter changes, etc. all keep it in sync for free since it's rebuilt from `totals` each time).
+
+### Donut Chart On-Slice Percentage-of-Total Labels
+
+Committed and pushed directly to `main`:
+
+- `4959eae 카테고리별 지출 원형차트에 전체 지출 대비 비율(%) 라벨 추가`
+- `285a9b8 chore: bump PWA cache version to v32 for donut chart percentage labels`
+
+Follow-up to the donut chart added earlier the same day: the user asked for percentage-of-total-spending information to appear directly on the chart itself, not just implied by slice size.
+
+- `buildCategoryChartCard()` now tracks a running angle (`angleAcc`, starting at `-90°` to match the `<g transform="rotate(-90 50 50)">` the arcs are drawn in) alongside the existing running dash-offset, and for each category computes its slice's midpoint angle, converts to radians, and places an SVG `<text>` at that point on the ring (radius `R = 40`, same radius the arcs are centered on) showing `${pct}%` — positioned as a sibling of the rotated `<g>` (not inside it) so the label itself doesn't inherit the group's rotation and stays upright.
+- **Slices under 5% skip the on-chart label** (computed but not rendered) to avoid overlapping text on thin slices; the legend below always shows every category's percentage regardless of slice size, so no information is lost, just decluttered on the chart itself.
+- New `.chart-slice-label` CSS: small (6.5px in the 100×100 viewBox coordinate system), bold, white fill with a thin dark stroke (`paint-order:stroke`) so the percentage stays legible against any of the 8 slice colors.
+- Legend row text changed from `금액 (N%)` to `금액 · 전체 지출 대비 N%` for clarity, and the card title/note now explicitly say "전체 지출 대비 비율" (percentage relative to total spending across all categories) so it's unambiguous that 100% is the sum of every category, not some other denominator.
+- Still a pure display computation — no Firestore change.
 
 ### EUR Expense Amounts Show a KRW Estimate
 
